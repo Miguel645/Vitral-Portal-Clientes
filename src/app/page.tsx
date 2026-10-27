@@ -37,6 +37,7 @@ export default async function ClientsPage({
         <h1>Clientes Vitral</h1>
         <span className="count">
           {all.length} {all.length === 1 ? "cliente" : "clientes"} ·{" "}
+          <Link className="navlink" href="/codes">Códigos</Link> ·{" "}
           <form action={logout} style={{ display: "inline" }}>
             <button className="signout" type="submit">Terminar sessão</button>
           </form>
