@@ -22,6 +22,12 @@ create policy "Signed-in users manage clients"
   using (true)
   with check (true);
 
+-- Opt-out link: every client gets a unique token used by the public /u/[token]
+-- unsubscribe page. Backfills any existing rows that don't have one yet.
+alter table public.clients add column if not exists unsubscribe_token uuid unique default gen_random_uuid();
+
+update public.clients set unsubscribe_token = gen_random_uuid() where unsubscribe_token is null;
+
 -- Discount codes v2: replaces the earlier generic percentage/fixed code idea
 -- with birthday codes and spend-promotion reward codes.
 
@@ -125,6 +131,26 @@ drop policy if exists "Anyone can manage discount codes" on public.discount_code
 drop policy if exists "Signed-in users manage discount codes" on public.discount_codes;
 create policy "Signed-in users manage discount codes"
   on public.discount_codes
+  for all
+  to authenticated
+  using (true)
+  with check (true);
+
+-- Campaigns step 1: SMS sending (simulated or real via Twilio), always logged.
+create table if not exists public.sms_log (
+  id uuid primary key default gen_random_uuid(),
+  to_phone text not null,
+  body text not null,
+  status text not null,
+  client_id uuid references public.clients(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.sms_log enable row level security;
+
+drop policy if exists "Signed-in users manage sms log" on public.sms_log;
+create policy "Signed-in users manage sms log"
+  on public.sms_log
   for all
   to authenticated
   using (true)

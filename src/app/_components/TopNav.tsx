@@ -4,6 +4,7 @@ const LINKS = [
   { key: "clients", href: "/", label: "Clientes" },
   { key: "codes", href: "/codes", label: "Códigos" },
   { key: "promotions", href: "/promotions", label: "Promoções" },
+  { key: "campaigns", href: "/campaigns/new", label: "Campanhas" },
   { key: "settings", href: "/settings/birthday", label: "Definições" },
 ] as const;
 
