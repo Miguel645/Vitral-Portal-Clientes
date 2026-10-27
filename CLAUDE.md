@@ -22,18 +22,28 @@ Miguel is the only user for now. He works as a systems/support engineer and is b
 - Planned SMS provider: Twilio. Planned email provider: Resend. Sending must happen on the server, never in the browser.
 - Online from day 1.
 - Login is temporarily switched off (middleware redirect commented out) and the database policies allow the `anon` role too, so the site works without signing in. This is open to anyone with the site URL for now — re-enable both together when ready.
+- All site text is in Portuguese (European).
+- Discount codes (replaces the earlier generic percentage/fixed idea): every code is 8 random uppercase characters, excluding confusing characters (0, O, 1, I). Two kinds: `birthday` and `spend`. A code can be checked or marked as used on `/codes`; there is no manual code creation.
+- Birthday codes: one per client per calendar year, for clients with `consent = true`, using the percentage and validity-in-days set on `/settings/birthday`. A client born on 29 Feb counts as 28 Feb in non-leap years. Created automatically once a day by the `/api/cron/birthdays` Vercel Cron job (see `vercel.json`), and can also be run on demand from the settings page. "Today" is always calculated in the Europe/Lisbon timezone.
+- Spend promotions (`promotions` table): each has an earn window (date range), a minimum spend per purchase, a reward percentage, and a separate reward validity window. Adding a purchase on a client's page checks every active promotion; if the purchase date falls in the earn window and the amount meets the minimum, one reward code is created (never more than one per purchase+promotion pair).
+- The birthday cron and the "run now" button use a server-only Supabase client with the `SUPABASE_SERVICE_ROLE_KEY` (bypasses RLS), since they run without a signed-in session. That key must never have a `NEXT_PUBLIC_` prefix and must never be imported into a client component.
 
 ## Plan
 
 1. Client records (done: login, list, search, add, edit, delete)
-2. Discount codes: percentage or fixed amount, expiry date, usage limit, optionally tied to a client or campaign (for example a birthday code)
+2. Discount codes (done: birthday codes, spend-promotion reward codes, code list/check/mark-used)
 3. Campaigns: write a message, choose who receives it, send by SMS and/or email
 
 ## Where things are
 
 - `src/app/` pages and server actions
-- `src/lib/supabase/server.ts` Supabase client for the server
-- `src/middleware.ts` redirects signed-out visitors to `/login`
+- `src/app/_components/TopNav.tsx` shared header navigation (Clients, Codes, Promotions, Settings)
+- `src/lib/supabase/server.ts` Supabase client for the server (uses the anon key, respects RLS)
+- `src/lib/supabase/admin.ts` server-only Supabase client using the service role key (bypasses RLS) — only for the birthday cron/settings "run now" action
+- `src/lib/birthdayCodes.ts` shared birthday-code logic used by the cron route and the settings page
+- `src/lib/codes.ts` random code generator
+- `src/lib/date.ts` date helpers, including "today in Europe/Lisbon"
+- `src/middleware.ts` redirects signed-out visitors to `/login` (currently commented out, see above)
 - `supabase/schema.sql` database setup. Add new tables and policies here, and tell Miguel to run them in the Supabase SQL Editor.
 
 ## Working rules

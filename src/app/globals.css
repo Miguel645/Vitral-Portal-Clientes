@@ -68,6 +68,10 @@ ul.list a:hover { background: color-mix(in srgb, var(--accent) 7%, transparent);
 .tag.on { border-color: var(--accent); color: var(--accent); }
 .tag.warn { border-color: var(--warn); color: var(--warn); }
 .navlink { color: var(--muted); text-decoration: underline; }
+.navlink.active { color: var(--accent); text-decoration: none; font-weight: 600; }
+.topnav { display: flex; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+.list-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; }
+.notice { color: var(--accent); font-size: 0.9rem; margin: 0 0 12px; }
 .empty { padding: 28px 16px; text-align: center; color: var(--muted); }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
 .narrow { max-width: 440px; margin: 0 auto; }

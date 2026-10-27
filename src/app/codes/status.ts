@@ -1,14 +1,13 @@
-export type StatusKey = "active" | "expired" | "used_up" | "disabled";
+import { lisbonToday } from "@/lib/date";
 
-export function codeStatus(c: {
-  active: boolean;
-  expires_at: string | null;
-  max_uses: number | null;
-  times_used: number;
-}): { key: StatusKey; label: string } {
-  const today = new Date().toISOString().slice(0, 10);
-  if (!c.active) return { key: "disabled", label: "Desativado" };
-  if (c.expires_at && c.expires_at < today) return { key: "expired", label: "Expirado" };
-  if (c.max_uses != null && c.times_used >= c.max_uses) return { key: "used_up", label: "Esgotado" };
+export type StatusKey = "active" | "not_started" | "expired" | "used";
+
+export function codeStatus(
+  c: { valid_from: string; valid_to: string; used_at: string | null },
+  today: string = lisbonToday()
+): { key: StatusKey; label: string } {
+  if (c.used_at) return { key: "used", label: "Usado" };
+  if (today < c.valid_from) return { key: "not_started", label: "Por começar" };
+  if (today > c.valid_to) return { key: "expired", label: "Expirado" };
   return { key: "active", label: "Ativo" };
 }
