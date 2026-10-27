@@ -21,6 +21,7 @@ Miguel is the only user for now. He works as a systems/support engineer and is b
 - Consent matters (EU/Portugal): never message a client without the consent flag, and every message needs an easy way to opt out.
 - Planned SMS provider: Twilio. Planned email provider: Resend. Sending must happen on the server, never in the browser.
 - Online from day 1.
+- Login is temporarily switched off (middleware redirect commented out) and the database policies allow the `anon` role too, so the site works without signing in. This is open to anyone with the site URL for now — re-enable both together when ready.
 
 ## Plan
 

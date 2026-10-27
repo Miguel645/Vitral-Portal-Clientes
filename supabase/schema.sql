@@ -10,14 +10,15 @@ create table if not exists public.clients (
   created_at timestamptz not null default now()
 );
 
--- Only signed-in users can see or change clients.
+-- Login is turned off for now, so visitors without an account need access too.
 alter table public.clients enable row level security;
 
 drop policy if exists "Signed-in users manage clients" on public.clients;
-create policy "Signed-in users manage clients"
+drop policy if exists "Anyone can manage clients" on public.clients;
+create policy "Anyone can manage clients"
   on public.clients
   for all
-  to authenticated
+  to anon, authenticated
   using (true)
   with check (true);
 
@@ -34,13 +35,14 @@ create table if not exists public.discount_codes (
   created_at timestamptz not null default now()
 );
 
--- Only signed-in users can see or change discount codes.
+-- Login is turned off for now, so visitors without an account need access too.
 alter table public.discount_codes enable row level security;
 
 drop policy if exists "Signed-in users manage discount codes" on public.discount_codes;
-create policy "Signed-in users manage discount codes"
+drop policy if exists "Anyone can manage discount codes" on public.discount_codes;
+create policy "Anyone can manage discount codes"
   on public.discount_codes
   for all
-  to authenticated
+  to anon, authenticated
   using (true)
   with check (true);
