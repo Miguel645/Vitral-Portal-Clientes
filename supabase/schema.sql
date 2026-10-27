@@ -10,22 +10,20 @@ create table if not exists public.clients (
   created_at timestamptz not null default now()
 );
 
--- Login is turned off for now, so visitors without an account need access too.
+-- Only signed-in users can see or change clients.
 alter table public.clients enable row level security;
 
-drop policy if exists "Signed-in users manage clients" on public.clients;
 drop policy if exists "Anyone can manage clients" on public.clients;
-create policy "Anyone can manage clients"
+drop policy if exists "Signed-in users manage clients" on public.clients;
+create policy "Signed-in users manage clients"
   on public.clients
   for all
-  to anon, authenticated
+  to authenticated
   using (true)
   with check (true);
 
 -- Discount codes v2: replaces the earlier generic percentage/fixed code idea
--- with birthday codes and spend-promotion reward codes. Running this block
--- drops the old discount_codes table (and any codes in it) and rebuilds it
--- with the new columns below.
+-- with birthday codes and spend-promotion reward codes.
 
 create table if not exists public.birthday_settings (
   id smallint primary key default 1,
@@ -42,10 +40,11 @@ on conflict (id) do nothing;
 alter table public.birthday_settings enable row level security;
 
 drop policy if exists "Anyone can manage birthday settings" on public.birthday_settings;
-create policy "Anyone can manage birthday settings"
+drop policy if exists "Signed-in users manage birthday settings" on public.birthday_settings;
+create policy "Signed-in users manage birthday settings"
   on public.birthday_settings
   for all
-  to anon, authenticated
+  to authenticated
   using (true)
   with check (true);
 
@@ -61,10 +60,11 @@ create table if not exists public.purchases (
 alter table public.purchases enable row level security;
 
 drop policy if exists "Anyone can manage purchases" on public.purchases;
-create policy "Anyone can manage purchases"
+drop policy if exists "Signed-in users manage purchases" on public.purchases;
+create policy "Signed-in users manage purchases"
   on public.purchases
   for all
-  to anon, authenticated
+  to authenticated
   using (true)
   with check (true);
 
@@ -86,16 +86,15 @@ create table if not exists public.promotions (
 alter table public.promotions enable row level security;
 
 drop policy if exists "Anyone can manage promotions" on public.promotions;
-create policy "Anyone can manage promotions"
+drop policy if exists "Signed-in users manage promotions" on public.promotions;
+create policy "Signed-in users manage promotions"
   on public.promotions
   for all
-  to anon, authenticated
+  to authenticated
   using (true)
   with check (true);
 
-drop table if exists public.discount_codes;
-
-create table public.discount_codes (
+create table if not exists public.discount_codes (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   kind text not null check (kind in ('birthday', 'spend')),
@@ -122,11 +121,11 @@ create unique index if not exists discount_codes_one_per_purchase_promotion
 
 alter table public.discount_codes enable row level security;
 
-drop policy if exists "Signed-in users manage discount codes" on public.discount_codes;
 drop policy if exists "Anyone can manage discount codes" on public.discount_codes;
-create policy "Anyone can manage discount codes"
+drop policy if exists "Signed-in users manage discount codes" on public.discount_codes;
+create policy "Signed-in users manage discount codes"
   on public.discount_codes
   for all
-  to anon, authenticated
+  to authenticated
   using (true)
   with check (true);

@@ -21,7 +21,7 @@ Miguel is the only user for now. He works as a systems/support engineer and is b
 - Consent matters (EU/Portugal): never message a client without the consent flag, and every message needs an easy way to opt out.
 - Planned SMS provider: Twilio. Planned email provider: Resend. Sending must happen on the server, never in the browser.
 - Online from day 1.
-- Login is temporarily switched off (middleware redirect commented out) and the database policies allow the `anon` role too, so the site works without signing in. This is open to anyone with the site URL for now — re-enable both together when ready.
+- Login is on. The login form asks for a username (not an email) and a password; `src/lib/auth.ts` maps the username to an internal email (`<username>@example.com`, domain kept in one constant) and signs in via Supabase `signInWithPassword`. Username must be 3-30 characters: letters, digits, dot, underscore, or hyphen. Any failure (bad format or wrong credentials) shows one generic message, on purpose, so it never reveals which part was wrong. There's no sign-up page, and public sign-ups must stay disabled in Supabase (Authentication settings) — the only way to create an account is directly in the Supabase dashboard. All database policies require `authenticated` only (no more anonymous access).
 - All site text is in Portuguese (European).
 - Discount codes (replaces the earlier generic percentage/fixed idea): every code is 8 random uppercase characters, excluding confusing characters (0, O, 1, I). Two kinds: `birthday` and `spend`. A code can be checked or marked as used on `/codes`; there is no manual code creation.
 - Birthday codes: one per client per calendar year, for clients with `consent = true`, using the percentage and validity-in-days set on `/settings/birthday`. A client born on 29 Feb counts as 28 Feb in non-leap years. Created automatically once a day by the `/api/cron/birthdays` Vercel Cron job (see `vercel.json`), and can also be run on demand from the settings page. "Today" is always calculated in the Europe/Lisbon timezone.
@@ -43,7 +43,8 @@ Miguel is the only user for now. He works as a systems/support engineer and is b
 - `src/lib/birthdayCodes.ts` shared birthday-code logic used by the cron route and the settings page
 - `src/lib/codes.ts` random code generator
 - `src/lib/date.ts` date helpers, including "today in Europe/Lisbon"
-- `src/middleware.ts` redirects signed-out visitors to `/login` (currently commented out, see above)
+- `src/lib/auth.ts` username validation pattern and the username-to-email mapping used for login
+- `src/middleware.ts` redirects signed-out visitors to `/login`
 - `supabase/schema.sql` database setup. Add new tables and policies here, and tell Miguel to run them in the Supabase SQL Editor.
 
 ## Working rules

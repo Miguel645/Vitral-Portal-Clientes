@@ -13,14 +13,16 @@ export default async function LoginPage({
       <form action={login} className="card">
         <h2>Iniciar sessão</h2>
         <label>
-          Email
-          <input type="email" name="email" autoComplete="email" required />
+          Utilizador
+          <input type="text" name="username" autoComplete="username" required />
+          <span className="hint">3 a 30 carateres: letras, números, ponto, underscore ou hífen.</span>
         </label>
         <label>
           Palavra-passe
           <input type="password" name="password" autoComplete="current-password" required />
+          <span className="hint">A palavra-passe da sua conta.</span>
         </label>
-        {error ? <p className="err" role="alert">O email ou a palavra-passe estão errados. Tente novamente.</p> : null}
+        {error ? <p className="err" role="alert">Utilizador ou palavra-passe inválidos.</p> : null}
         <div className="actions">
           <button type="submit" className="btn primary">Iniciar sessão</button>
         </div>
