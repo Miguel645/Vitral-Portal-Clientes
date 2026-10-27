@@ -54,38 +54,15 @@ create policy "Signed-in users manage birthday settings"
   using (true)
   with check (true);
 
-create table if not exists public.purchases (
-  id uuid primary key default gen_random_uuid(),
-  client_id uuid not null references public.clients(id) on delete cascade,
-  amount numeric not null check (amount > 0),
-  purchased_at date not null default current_date,
-  note text,
-  created_at timestamptz not null default now()
-);
-
-alter table public.purchases enable row level security;
-
-drop policy if exists "Anyone can manage purchases" on public.purchases;
-drop policy if exists "Signed-in users manage purchases" on public.purchases;
-create policy "Signed-in users manage purchases"
-  on public.purchases
-  for all
-  to authenticated
-  using (true)
-  with check (true);
-
 create table if not exists public.promotions (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  earn_from date not null,
-  earn_to date not null,
-  min_spend numeric not null check (min_spend > 0),
+  condition text,
   discount_percent numeric not null check (discount_percent >= 1 and discount_percent <= 100),
   reward_valid_from date not null,
   reward_valid_to date not null,
   active boolean not null default true,
   created_at timestamptz not null default now(),
-  constraint promotions_earn_window check (earn_from <= earn_to),
   constraint promotions_reward_window check (reward_valid_from <= reward_valid_to)
 );
 
@@ -103,11 +80,10 @@ create policy "Signed-in users manage promotions"
 create table if not exists public.discount_codes (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
-  kind text not null check (kind in ('birthday', 'spend')),
+  kind text not null check (kind in ('birthday', 'promotion')),
   percent numeric not null check (percent >= 1 and percent <= 100),
   client_id uuid references public.clients(id) on delete set null,
   promotion_id uuid references public.promotions(id) on delete set null,
-  purchase_id uuid references public.purchases(id) on delete set null,
   valid_from date not null,
   valid_to date not null,
   used_at timestamptz,
@@ -119,11 +95,6 @@ create table if not exists public.discount_codes (
 create unique index if not exists discount_codes_one_birthday_per_year
   on public.discount_codes (client_id, extract(year from valid_from))
   where kind = 'birthday';
-
--- At most one reward code per purchase per promotion.
-create unique index if not exists discount_codes_one_per_purchase_promotion
-  on public.discount_codes (purchase_id, promotion_id)
-  where kind = 'spend' and purchase_id is not null;
 
 alter table public.discount_codes enable row level security;
 
@@ -155,3 +126,28 @@ create policy "Signed-in users manage sms log"
   to authenticated
   using (true)
   with check (true);
+
+-- Vales (vouchers) only, no purchase tracking: staff decide at the till when a
+-- client qualifies. Safe to run again on a database that already has the
+-- older purchases/spend-promotion shape above.
+
+-- Remove the purchase-tied unique index and column before dropping the table.
+drop index if exists public.discount_codes_one_per_purchase_promotion;
+alter table public.discount_codes drop column if exists purchase_id;
+
+drop table if exists public.purchases;
+
+-- 'spend' vales are now just called 'promotion' vales (no purchase_id left).
+update public.discount_codes set kind = 'promotion' where kind = 'spend';
+
+alter table public.discount_codes drop constraint if exists discount_codes_kind_check;
+alter table public.discount_codes add constraint discount_codes_kind_check
+  check (kind in ('birthday', 'promotion'));
+
+-- Promotions are now simple vale templates: no earn window or minimum spend,
+-- just a plain-text condition shown to staff (not enforced by the app).
+alter table public.promotions drop constraint if exists promotions_earn_window;
+alter table public.promotions drop column if exists earn_from;
+alter table public.promotions drop column if exists earn_to;
+alter table public.promotions drop column if exists min_spend;
+alter table public.promotions add column if not exists condition text;

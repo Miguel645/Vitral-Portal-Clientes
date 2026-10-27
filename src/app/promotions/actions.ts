@@ -4,39 +4,32 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 function parse(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
-  const earnFrom = String(formData.get("earn_from") ?? "").trim();
-  const earnTo = String(formData.get("earn_to") ?? "").trim();
-  const minSpendRaw = String(formData.get("min_spend") ?? "").trim().replace(",", ".");
+  const condition = String(formData.get("condition") ?? "").trim();
   const discountRaw = String(formData.get("discount_percent") ?? "").trim().replace(",", ".");
-  const rewardFrom = String(formData.get("reward_valid_from") ?? "").trim();
-  const rewardTo = String(formData.get("reward_valid_to") ?? "").trim();
-  const active = formData.get("active") === "on";
+  const validFrom = String(formData.get("reward_valid_from") ?? "").trim();
+  const validTo = String(formData.get("reward_valid_to") ?? "").trim();
+  const paused = formData.get("paused") === "on";
 
-  const minSpend = Number(minSpendRaw);
   const discountPercent = Number(discountRaw);
 
   let error = "";
-  if (!name) error = "Indique o nome da promoção.";
-  else if (!earnFrom || !earnTo) error = "Indique as datas de início e fim das compras.";
-  else if (earnFrom > earnTo) error = "A data de início das compras tem de ser antes da data de fim.";
-  else if (!Number.isFinite(minSpend) || minSpend <= 0) error = "Indique uma compra mínima superior a 0.";
+  if (!name) error = "Indique o nome da promoção. Exemplo: \"Natal 2026\".";
   else if (!Number.isFinite(discountPercent) || discountPercent < 1 || discountPercent > 100)
-    error = "Indique uma percentagem entre 1 e 100.";
-  else if (!rewardFrom || !rewardTo) error = "Indique as datas de validade do prémio.";
-  else if (rewardFrom > rewardTo) error = "A data de início do prémio tem de ser antes da data de fim.";
+    error = "Indique uma percentagem entre 1 e 100. Exemplo: 10.";
+  else if (!validFrom || !validTo) error = "Indique as duas datas de validade do vale.";
+  else if (validFrom > validTo) error = "A primeira data tem de ser antes da segunda. Verifique e tente novamente.";
 
   return {
     error,
     row: {
       name,
-      earn_from: earnFrom,
-      earn_to: earnTo,
-      min_spend: minSpend,
+      condition: condition || null,
       discount_percent: discountPercent,
-      reward_valid_from: rewardFrom,
-      reward_valid_to: rewardTo,
-      active,
+      reward_valid_from: validFrom,
+      reward_valid_to: validTo,
+      active: id ? !paused : true,
     },
   };
 }

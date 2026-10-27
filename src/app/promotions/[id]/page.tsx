@@ -15,7 +15,7 @@ export default async function EditPromotionPage({
 
   const { data: promotion } = await supabase
     .from("promotions")
-    .select("id, name, earn_from, earn_to, min_spend, discount_percent, reward_valid_from, reward_valid_to, active")
+    .select("id, name, condition, discount_percent, reward_valid_from, reward_valid_to, active")
     .eq("id", id)
     .maybeSingle();
 

@@ -9,7 +9,7 @@ export async function markCodeUsed(formData: FormData) {
     const supabase = await createClient();
     await supabase.from("discount_codes").update({ used_at: new Date().toISOString() }).eq("id", id).is("used_at", null);
   }
-  redirect(`/codes?message=${encodeURIComponent("Código marcado como usado.")}`);
+  redirect(`/codes?message=${encodeURIComponent("Vale marcado como usado.")}`);
 }
 
 export async function deleteCode(formData: FormData) {
@@ -19,5 +19,5 @@ export async function deleteCode(formData: FormData) {
     const supabase = await createClient();
     await supabase.from("discount_codes").delete().eq("id", id);
   }
-  redirect(`/codes?message=${encodeURIComponent(`Código ${code} eliminado.`)}`);
+  redirect(`/codes?message=${encodeURIComponent(`Vale ${code} eliminado.`)}`);
 }

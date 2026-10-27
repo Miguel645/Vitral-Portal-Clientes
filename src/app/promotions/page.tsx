@@ -2,14 +2,12 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import TopNav from "@/app/_components/TopNav";
 import { formatDate } from "@/lib/date";
-import { formatMoney } from "@/lib/money";
+import { promotionStatus } from "./status";
 
 type Promotion = {
   id: string;
   name: string;
-  earn_from: string;
-  earn_to: string;
-  min_spend: number;
+  condition: string | null;
   discount_percent: number;
   reward_valid_from: string;
   reward_valid_to: string;
@@ -23,17 +21,25 @@ export default async function PromotionsPage({
 }) {
   const { message } = await searchParams;
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("promotions")
-    .select("id, name, earn_from, earn_to, min_spend, discount_percent, reward_valid_from, reward_valid_to, active")
-    .order("earn_from", { ascending: false });
 
-  const rows = (data ?? []) as Promotion[];
+  const [{ data: promotions }, { data: codeRows }] = await Promise.all([
+    supabase
+      .from("promotions")
+      .select("id, name, condition, discount_percent, reward_valid_from, reward_valid_to, active")
+      .order("reward_valid_from", { ascending: false }),
+    supabase.from("discount_codes").select("promotion_id").not("promotion_id", "is", null),
+  ]);
+
+  const rows = (promotions ?? []) as Promotion[];
+  const counts = new Map<string, number>();
+  for (const r of codeRows ?? []) {
+    if (r.promotion_id) counts.set(r.promotion_id, (counts.get(r.promotion_id) ?? 0) + 1);
+  }
 
   return (
     <main>
       <header className="top">
-        <h1>Promoções</h1>
+        <h1>Promoções de vales</h1>
       </header>
 
       <TopNav current="promotions" />
@@ -48,23 +54,32 @@ export default async function PromotionsPage({
         <div className="empty">Ainda não há promoções. Selecione “Adicionar promoção” para criar a primeira.</div>
       ) : (
         <ul className="list">
-          {rows.map((p) => (
-            <li key={p.id} className="list-row with-link">
-              <Link href={`/promotions/${p.id}`} className="list-link">
-                <div>
-                  <div className="name">{p.name}</div>
-                  <div className="meta">
-                    Compras de {formatDate(p.earn_from)} a {formatDate(p.earn_to)} · mínimo {formatMoney(p.min_spend)} ·{" "}
-                    {p.discount_percent}% · prémio válido de {formatDate(p.reward_valid_from)} a {formatDate(p.reward_valid_to)}
-                  </div>
+          {rows.map((p) => {
+            const status = promotionStatus(p);
+            const count = counts.get(p.id) ?? 0;
+            return (
+              <li key={p.id} style={{ padding: 18 }}>
+                <p style={{ margin: "0 0 6px", fontWeight: 600 }}>{p.name}</p>
+                <p className="meta" style={{ margin: "0 0 10px" }}>
+                  Vale de {p.discount_percent}% de desconto, válido de {formatDate(p.reward_valid_from)} a{" "}
+                  {formatDate(p.reward_valid_to)}.{p.condition ? ` Condição: ${p.condition}.` : ""}
+                </p>
+                <div className="row-end" style={{ justifyContent: "space-between", padding: 0 }}>
+                  <span>
+                    <span className={`tag${status.key === "running" ? " on" : status.key === "ended" || status.key === "paused" ? " warn" : ""}`}>
+                      {status.label}
+                    </span>{" "}
+                    <span className="meta">{count} {count === 1 ? "vale criado" : "vales criados"}</span>
+                  </span>
+                  <span className="row-end" style={{ padding: 0 }}>
+                    <Link href={`/promotions/${p.id}`} className="btn">Editar</Link>
+                    <Link href={`/promotions/${p.id}/delete`} className="btn danger">Eliminar</Link>
+                    <Link href={`/promotions/${p.id}/criar-vale`} className="btn primary">Criar vale</Link>
+                  </span>
                 </div>
-              </Link>
-              <div className="row-end">
-                <span className={`tag${p.active ? " on" : ""}`}>{p.active ? "Ativa" : "Inativa"}</span>
-                <Link href={`/promotions/${p.id}/delete`} className="btn danger">Eliminar</Link>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </main>

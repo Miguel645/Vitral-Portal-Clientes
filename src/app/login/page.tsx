@@ -16,7 +16,7 @@ export default async function LoginPage({
         <label>
           Utilizador
           <input type="text" name="username" autoComplete="username" required />
-          <span className="hint">Letras, números, pontos, traços (-) ou traços-baixos (_). Entre 3 e 30 carateres.</span>
+          <span className="hint">Letras, números, pontos, traços (-) ou traços-baixos (_). Exemplo: miguel.ferreira.</span>
         </label>
         <label>
           Palavra-passe

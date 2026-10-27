@@ -42,8 +42,8 @@ export default async function DeletePromotionPage({
           possível desfazer.
         </p>
         <p className="meta">
-          Esta promoção já criou {codeCount} {codeCount === 1 ? "código" : "códigos"}. Esses códigos ficam
-          guardados e continuam válidos normalmente.
+          Esta promoção já criou {codeCount} {codeCount === 1 ? "vale" : "vales"}. Esses vales ficam guardados e
+          continuam válidos normalmente.
         </p>
         <div className="confirm-actions">
           <Link href="/promotions" className="btn primary">Não, voltar</Link>

@@ -96,6 +96,22 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
 .tag.on { border-color: var(--accent); color: var(--accent); }
 .tag.warn { border-color: var(--warn); color: var(--warn); }
 
+/* Balcão: huge, unmissable buttons for staff at the till */
+.balcao-btn { width: 100%; min-height: 84px; font-size: 1.3rem; font-weight: 700; }
+
+/* Big, clear voucher check result — always paired with words, never colour alone */
+.result-box {
+  border-radius: 14px;
+  padding: 24px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 18px 0;
+  border: 2px solid var(--line);
+}
+.result-box.ok { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--accent); border-color: var(--accent); }
+.result-box.bad { background: color-mix(in srgb, var(--warn) 16%, var(--surface)); color: var(--warn); border-color: var(--warn); }
+
 /* Navigation: big labelled buttons, current page highlighted beyond colour */
 .topnav { display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; }
 .topnav form { margin: 0; }
@@ -138,6 +154,11 @@ label.check input { width: auto; min-height: auto; margin-top: 5px; }
 .confirm-actions { display: flex; gap: 14px; margin-top: 22px; flex-wrap: wrap; }
 .confirm-actions > a, .confirm-actions > form { flex: 1 1 200px; }
 .confirm-actions .btn { width: 100%; min-height: 56px; font-size: 1.05rem; }
+
+/* Printing a vale list: keep only the list, drop nav/buttons/forms */
+@media print {
+  .topnav, .bar, form, .actions, .danger-zone { display: none; }
+}
 
 
 /* Phones */

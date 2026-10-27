@@ -2,8 +2,9 @@ import Link from "next/link";
 import { logout } from "@/app/login/actions";
 
 const LINKS = [
+  { key: "balcao", href: "/balcao", label: "Balcão" },
   { key: "clients", href: "/", label: "Clientes" },
-  { key: "codes", href: "/codes", label: "Códigos" },
+  { key: "codes", href: "/codes", label: "Vales" },
   { key: "promotions", href: "/promotions", label: "Promoções" },
   { key: "campaigns", href: "/campaigns/new", label: "Campanhas" },
   { key: "settings", href: "/settings/birthday", label: "Definições" },

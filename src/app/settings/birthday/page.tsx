@@ -21,18 +21,20 @@ export default async function BirthdaySettingsPage({
       <TopNav current="settings" />
 
       <form action={saveBirthdaySettings} className="card">
-        <h2>Código de aniversário</h2>
+        <h2>Vale de aniversário</h2>
         <label className="check">
           <input type="checkbox" name="active" defaultChecked={settings.active} />
-          <span>Criar códigos de aniversário automaticamente</span>
+          <span>Criar vales de aniversário automaticamente</span>
         </label>
         <label>
           Percentagem de desconto
           <input type="number" name="percent" inputMode="decimal" min="1" max="100" step="0.01" defaultValue={settings.percent} required />
+          <span className="hint">Desconto do vale de aniversário. Exemplo: 10 (para 10%).</span>
         </label>
         <label>
           Validade em dias a partir do aniversário
           <input type="number" name="valid_days" inputMode="numeric" min="1" step="1" defaultValue={settings.valid_days} required />
+          <span className="hint">Quantos dias, a contar do aniversário, o vale continua válido. Exemplo: 14.</span>
         </label>
         {error ? <p className="err" role="alert">{error}</p> : null}
         {message ? <p className="notice">{message}</p> : null}
@@ -44,11 +46,11 @@ export default async function BirthdaySettingsPage({
       <form action={runBirthdayCheckNow} className="card" style={{ marginTop: 20 }}>
         <h2>Testar agora</h2>
         <p className="meta" style={{ marginBottom: 14 }}>
-          Cria um código de aniversário para quem faz anos hoje e aceitou promoções. Pode usar este botão quantas
-          vezes quiser, sem criar códigos a mais.
+          Cria um vale de aniversário para quem faz anos hoje e aceitou promoções. Pode usar este botão quantas
+          vezes quiser, sem criar vales a mais.
         </p>
         <div className="actions">
-          <button type="submit" className="btn">Criar códigos de aniversário agora</button>
+          <button type="submit" className="btn">Criar vales de aniversário agora</button>
         </div>
       </form>
     </main>

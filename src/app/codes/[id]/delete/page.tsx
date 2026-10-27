@@ -23,7 +23,7 @@ export default async function DeleteCodePage({
   return (
     <main className="narrow">
       <header className="top">
-        <h1>Eliminar código</h1>
+        <h1>Eliminar vale</h1>
       </header>
 
       <TopNav current="codes" />
@@ -31,7 +31,7 @@ export default async function DeleteCodePage({
       <div className="card">
         <h2>Tem a certeza?</h2>
         <p>
-          Tem a certeza que quer eliminar o código <strong>{code.code}</strong>? Não é possível desfazer.
+          Tem a certeza que quer eliminar o vale <strong>{code.code}</strong>? Não é possível desfazer.
         </p>
         <div className="confirm-actions">
           <Link href="/codes" className="btn primary">Não, voltar</Link>

@@ -66,7 +66,7 @@ export default function CampaignComposer({
       <label>
         Número de telefone para teste
         <input type="tel" name="phone" placeholder="912 345 678" autoComplete="off" required />
-        <span className="hint">Número português (9 dígitos a começar por 9) ou com +código do país.</span>
+        <span className="hint">Número português de 9 dígitos a começar por 9. Exemplo: 912 345 678.</span>
       </label>
 
       {testError ? <p className="err" role="alert">{testError}</p> : null}
