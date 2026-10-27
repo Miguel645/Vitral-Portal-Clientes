@@ -22,16 +22,16 @@ const KIND_LABEL: Record<string, string> = { birthday: "Aniversário", spend: "C
 const FILTERS: { key: string; label: string }[] = [
   { key: "all", label: "Todos" },
   { key: "active", label: "Ativos" },
-  { key: "used", label: "Usados" },
+  { key: "used", label: "Já usados" },
   { key: "expired", label: "Expirados" },
 ];
 
 export default async function CodesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; check?: string }>;
+  searchParams: Promise<{ filter?: string; check?: string; message?: string }>;
 }) {
-  const { filter = "all", check = "" } = await searchParams;
+  const { filter = "all", check = "", message } = await searchParams;
   const supabase = await createClient();
   const today = lisbonToday();
 
@@ -89,6 +89,8 @@ export default async function CodesPage({
 
       <TopNav current="codes" />
 
+      {message ? <p className="notice">{message}</p> : null}
+
       <div className="card" style={{ marginBottom: 16 }}>
         <h2>Verificar código</h2>
         <form method="get" className="inline-form">
@@ -142,6 +144,7 @@ export default async function CodesPage({
                     <button type="submit" className="btn">Marcar como usado</button>
                   </form>
                 ) : null}
+                <Link href={`/codes/${c.id}/delete`} className="btn danger">Eliminar</Link>
               </div>
             </li>
           ))}

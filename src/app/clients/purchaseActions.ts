@@ -32,7 +32,7 @@ export async function addPurchase(formData: FormData) {
     .single();
 
   if (dbError || !purchase) {
-    redirect(`${back}?perror=${encodeURIComponent("Não foi possível guardar a compra. Tente novamente.")}`);
+    redirect(`${back}?perror=${encodeURIComponent("Não foi possível guardar a compra. Verifique os dados e tente novamente.")}`);
   }
 
   const { data: promotions } = await supabase

@@ -1,4 +1,5 @@
 import { formatDate, lisbonToday } from "@/lib/date";
+import { formatMoney } from "@/lib/money";
 import { addPurchase } from "./purchaseActions";
 import { codeStatus } from "../codes/status";
 
@@ -62,7 +63,7 @@ export default function PurchasesSection({
             {purchases.map((p) => (
               <li key={p.id} className="list-row">
                 <div>
-                  <div className="name">{p.amount.toFixed(2)} €</div>
+                  <div className="name">{formatMoney(p.amount)}</div>
                   <div className="meta">
                     {formatDate(p.purchased_at)}
                     {p.note ? ` · ${p.note}` : ""}

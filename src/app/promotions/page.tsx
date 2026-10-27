@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import TopNav from "@/app/_components/TopNav";
 import { formatDate } from "@/lib/date";
+import { formatMoney } from "@/lib/money";
 
 type Promotion = {
   id: string;
@@ -15,7 +16,12 @@ type Promotion = {
   active: boolean;
 };
 
-export default async function PromotionsPage() {
+export default async function PromotionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ message?: string }>;
+}) {
+  const { message } = await searchParams;
   const supabase = await createClient();
   const { data } = await supabase
     .from("promotions")
@@ -32,6 +38,8 @@ export default async function PromotionsPage() {
 
       <TopNav current="promotions" />
 
+      {message ? <p className="notice">{message}</p> : null}
+
       <div className="bar">
         <Link className="btn primary" href="/promotions/new">Adicionar promoção</Link>
       </div>
@@ -41,17 +49,20 @@ export default async function PromotionsPage() {
       ) : (
         <ul className="list">
           {rows.map((p) => (
-            <li key={p.id}>
-              <Link href={`/promotions/${p.id}`}>
+            <li key={p.id} className="list-row with-link">
+              <Link href={`/promotions/${p.id}`} className="list-link">
                 <div>
                   <div className="name">{p.name}</div>
                   <div className="meta">
-                    Compras de {formatDate(p.earn_from)} a {formatDate(p.earn_to)} · mínimo {p.min_spend.toFixed(2)} € ·{" "}
+                    Compras de {formatDate(p.earn_from)} a {formatDate(p.earn_to)} · mínimo {formatMoney(p.min_spend)} ·{" "}
                     {p.discount_percent}% · prémio válido de {formatDate(p.reward_valid_from)} a {formatDate(p.reward_valid_to)}
                   </div>
                 </div>
-                <span className={`tag${p.active ? " on" : ""}`}>{p.active ? "Ativa" : "Inativa"}</span>
               </Link>
+              <div className="row-end">
+                <span className={`tag${p.active ? " on" : ""}`}>{p.active ? "Ativa" : "Inativa"}</span>
+                <Link href={`/promotions/${p.id}/delete`} className="btn danger">Eliminar</Link>
+              </div>
             </li>
           ))}
         </ul>

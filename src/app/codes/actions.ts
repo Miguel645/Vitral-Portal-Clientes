@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export async function markCodeUsed(formData: FormData) {
@@ -9,5 +9,15 @@ export async function markCodeUsed(formData: FormData) {
     const supabase = await createClient();
     await supabase.from("discount_codes").update({ used_at: new Date().toISOString() }).eq("id", id).is("used_at", null);
   }
-  revalidatePath("/codes");
+  redirect(`/codes?message=${encodeURIComponent("Código marcado como usado.")}`);
+}
+
+export async function deleteCode(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const code = String(formData.get("code") ?? "");
+  if (id) {
+    const supabase = await createClient();
+    await supabase.from("discount_codes").delete().eq("id", id);
+  }
+  redirect(`/codes?message=${encodeURIComponent(`Código ${code} eliminado.`)}`);
 }

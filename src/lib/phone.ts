@@ -1,6 +1,6 @@
 export type PhoneResult = { ok: true; value: string } | { ok: false; error: string };
 
-const INVALID = "Número de telefone inválido.";
+const INVALID = "Número de telefone inválido. Verifique e tente novamente.";
 
 export function normalizePhone(raw: string): PhoneResult {
   const trimmed = raw.trim();

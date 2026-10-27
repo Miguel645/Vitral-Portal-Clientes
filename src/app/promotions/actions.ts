@@ -52,15 +52,19 @@ export async function savePromotion(formData: FormData) {
     ? await supabase.from("promotions").update(row).eq("id", id)
     : await supabase.from("promotions").insert(row);
 
-  if (dbError) redirect(`${back}?error=${encodeURIComponent("Não foi possível guardar. Tente novamente.")}`);
-  redirect("/promotions");
+  if (dbError) {
+    redirect(`${back}?error=${encodeURIComponent("Não foi possível guardar. Verifique os dados e tente novamente.")}`);
+  }
+  const message = id ? "Promoção atualizada." : "Promoção guardada.";
+  redirect(`/promotions?message=${encodeURIComponent(message)}`);
 }
 
 export async function deletePromotion(formData: FormData) {
   const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "");
   if (id) {
     const supabase = await createClient();
     await supabase.from("promotions").delete().eq("id", id);
   }
-  redirect("/promotions");
+  redirect(`/promotions?message=${encodeURIComponent(`Promoção "${name}" eliminada.`)}`);
 }

@@ -16,7 +16,7 @@ function parse(formData: FormData) {
   else if (digits.length < 9 || digits.length > 15)
     error = "Indique um número de telefone válido, com 9 a 15 dígitos.";
   else if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
-    error = "Esse endereço de email não parece correto.";
+    error = "Esse endereço de email não parece correto. Verifique e tente novamente.";
 
   return {
     error,
@@ -35,8 +35,11 @@ export async function saveClient(formData: FormData) {
     ? await supabase.from("clients").update(row).eq("id", id)
     : await supabase.from("clients").insert(row);
 
-  if (dbError) redirect(`${back}?error=${encodeURIComponent("Não foi possível guardar. Tente novamente.")}`);
-  redirect("/");
+  if (dbError) {
+    redirect(`${back}?error=${encodeURIComponent("Não foi possível guardar. Verifique os dados e tente novamente.")}`);
+  }
+  const message = id ? "Cliente atualizado." : "Cliente guardado.";
+  redirect(`/?message=${encodeURIComponent(message)}`);
 }
 
 export async function deleteClient(formData: FormData) {
@@ -45,5 +48,5 @@ export async function deleteClient(formData: FormData) {
     const supabase = await createClient();
     await supabase.from("clients").delete().eq("id", id);
   }
-  redirect("/");
+  redirect(`/?message=${encodeURIComponent("Cliente eliminado.")}`);
 }

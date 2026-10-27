@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { savePromotion, deletePromotion } from "./actions";
+import { savePromotion } from "./actions";
 
 export type PromotionValues = {
   id?: string;
@@ -70,15 +70,15 @@ export default function PromotionForm({
         </label>
         {error ? <p className="err" role="alert">{error}</p> : null}
         <div className="actions">
-          {promotion?.id ? (
-            <button type="submit" formAction={deletePromotion} formNoValidate className="btn danger spacer">
-              Eliminar promoção
-            </button>
-          ) : null}
           <Link className="btn" href="/promotions">Cancelar</Link>
           <button type="submit" className="btn primary">Guardar promoção</button>
         </div>
       </form>
+      {promotion?.id ? (
+        <div className="danger-zone">
+          <Link className="btn danger" href={`/promotions/${promotion.id}/delete`}>Eliminar promoção</Link>
+        </div>
+      ) : null}
     </main>
   );
 }

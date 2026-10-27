@@ -45,14 +45,16 @@ export default function ClientForm({
       </label>
       {error ? <p className="err" role="alert">{error}</p> : null}
       <div className="actions">
-        {client?.id ? (
-          <button type="submit" formAction={deleteClient} formNoValidate className="btn danger spacer">
-            Eliminar cliente
-          </button>
-        ) : null}
         <Link className="btn" href="/">Cancelar</Link>
         <button type="submit" className="btn primary">Guardar cliente</button>
       </div>
+      {client?.id ? (
+        <div className="danger-zone">
+          <button type="submit" formAction={deleteClient} formNoValidate className="btn danger">
+            Eliminar cliente
+          </button>
+        </div>
+      ) : null}
     </form>
   );
 }

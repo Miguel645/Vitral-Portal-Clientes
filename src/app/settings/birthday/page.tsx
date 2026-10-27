@@ -41,14 +41,14 @@ export default async function BirthdaySettingsPage({
         </div>
       </form>
 
-      <form action={runBirthdayCheckNow} className="card" style={{ marginTop: 16 }}>
+      <form action={runBirthdayCheckNow} className="card" style={{ marginTop: 20 }}>
         <h2>Testar agora</h2>
-        <p className="meta" style={{ marginBottom: 12 }}>
-          Cria códigos de aniversário para quem faz anos hoje e tem consentimento. Pode ser executado várias vezes
-          sem criar duplicados.
+        <p className="meta" style={{ marginBottom: 14 }}>
+          Cria um código de aniversário para quem faz anos hoje e aceitou promoções. Pode usar este botão quantas
+          vezes quiser, sem criar códigos a mais.
         </p>
         <div className="actions">
-          <button type="submit" className="btn">Executar verificação de aniversários agora</button>
+          <button type="submit" className="btn">Criar códigos de aniversário agora</button>
         </div>
       </form>
     </main>

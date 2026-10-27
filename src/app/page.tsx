@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { logout } from "./login/actions";
 import TopNav from "./_components/TopNav";
 
 type Client = {
@@ -14,9 +13,9 @@ type Client = {
 export default async function ClientsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; message?: string }>;
 }) {
-  const { q = "" } = await searchParams;
+  const { q = "", message } = await searchParams;
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -37,14 +36,13 @@ export default async function ClientsPage({
       <header className="top">
         <h1>Clientes Vitral</h1>
         <span className="count">
-          {all.length} {all.length === 1 ? "cliente" : "clientes"} ·{" "}
-          <form action={logout} style={{ display: "inline" }}>
-            <button className="signout" type="submit">Terminar sessão</button>
-          </form>
+          {all.length} {all.length === 1 ? "cliente" : "clientes"}
         </span>
       </header>
 
       <TopNav current="clients" />
+
+      {message ? <p className="notice">{message}</p> : null}
 
       <div className="bar">
         <form method="get">
@@ -64,13 +62,13 @@ export default async function ClientsPage({
         <ul className="list">
           {rows.map((c) => (
             <li key={c.id}>
-              <Link href={`/clients/${c.id}`}>
+              <Link href={`/clients/${c.id}`} className="list-link">
                 <div>
                   <div className="name">{c.name}</div>
                   <div className="meta">{[c.phone, c.email].filter(Boolean).join("  ·  ")}</div>
                 </div>
                 <span className={`tag${c.consent ? " on" : ""}`}>
-                  {c.consent ? "Promoções OK" : "Sem consentimento"}
+                  {c.consent ? "Aceitou promoções" : "Não aceitou promoções"}
                 </span>
               </Link>
             </li>

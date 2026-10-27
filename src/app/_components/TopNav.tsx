@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { logout } from "@/app/login/actions";
 
 const LINKS = [
   { key: "clients", href: "/", label: "Clientes" },
@@ -10,12 +11,20 @@ const LINKS = [
 
 export default function TopNav({ current }: { current: (typeof LINKS)[number]["key"] }) {
   return (
-    <nav className="topnav">
+    <nav className="topnav" aria-label="Navegação principal">
       {LINKS.map((l) => (
-        <Link key={l.key} href={l.href} className={l.key === current ? "navlink active" : "navlink"}>
+        <Link
+          key={l.key}
+          href={l.href}
+          className={l.key === current ? "navbtn active" : "navbtn"}
+          aria-current={l.key === current ? "page" : undefined}
+        >
           {l.label}
         </Link>
       ))}
+      <form action={logout}>
+        <button type="submit" className="navbtn">Sair</button>
+      </form>
     </nav>
   );
 }

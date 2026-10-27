@@ -6,7 +6,7 @@ export function codeStatus(
   c: { valid_from: string; valid_to: string; used_at: string | null },
   today: string = lisbonToday()
 ): { key: StatusKey; label: string } {
-  if (c.used_at) return { key: "used", label: "Usado" };
+  if (c.used_at) return { key: "used", label: "Já usado" };
   if (today < c.valid_from) return { key: "not_started", label: "Por começar" };
   if (today > c.valid_to) return { key: "expired", label: "Expirado" };
   return { key: "active", label: "Ativo" };

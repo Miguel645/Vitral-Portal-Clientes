@@ -28,12 +28,17 @@ export async function saveBirthdaySettings(formData: FormData) {
   const supabase = await createClient();
   const { error: dbError } = await supabase.from("birthday_settings").upsert(row);
 
-  if (dbError) redirect(`/settings/birthday?error=${encodeURIComponent("Não foi possível guardar. Tente novamente.")}`);
+  if (dbError) {
+    redirect(`/settings/birthday?error=${encodeURIComponent("Não foi possível guardar. Verifique os dados e tente novamente.")}`);
+  }
   redirect(`/settings/birthday?message=${encodeURIComponent("Definições guardadas.")}`);
 }
 
 export async function runBirthdayCheckNow() {
   const result = await runBirthdayCheck();
-  const message = `Verificação concluída: ${result.created} código(s) de aniversário criado(s).`;
+  const message =
+    result.created === 0
+      ? "Não há códigos novos para criar hoje."
+      : `Foram criados ${result.created} ${result.created === 1 ? "código" : "códigos"} de aniversário.`;
   redirect(`/settings/birthday?message=${encodeURIComponent(message)}`);
 }
