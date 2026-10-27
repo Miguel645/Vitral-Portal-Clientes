@@ -12,11 +12,11 @@ function parse(formData: FormData) {
 
   let error = "";
   const digits = phone.replace(/\D/g, "");
-  if (!name) error = "Enter the client’s name.";
+  if (!name) error = "Indique o nome do cliente.";
   else if (digits.length < 9 || digits.length > 15)
-    error = "Enter a valid phone number, with 9 to 15 digits.";
+    error = "Indique um número de telefone válido, com 9 a 15 dígitos.";
   else if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
-    error = "That email address doesn’t look right.";
+    error = "Esse endereço de email não parece correto.";
 
   return {
     error,
@@ -35,7 +35,7 @@ export async function saveClient(formData: FormData) {
     ? await supabase.from("clients").update(row).eq("id", id)
     : await supabase.from("clients").insert(row);
 
-  if (dbError) redirect(`${back}?error=${encodeURIComponent("Couldn’t save. Try again.")}`);
+  if (dbError) redirect(`${back}?error=${encodeURIComponent("Não foi possível guardar. Tente novamente.")}`);
   redirect("/");
 }
 

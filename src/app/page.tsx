@@ -34,28 +34,28 @@ export default async function ClientsPage({
   return (
     <main>
       <header className="top">
-        <h1>Vitral clients</h1>
+        <h1>Clientes Vitral</h1>
         <span className="count">
-          {all.length} {all.length === 1 ? "client" : "clients"} ·{" "}
+          {all.length} {all.length === 1 ? "cliente" : "clientes"} ·{" "}
           <form action={logout} style={{ display: "inline" }}>
-            <button className="signout" type="submit">Sign out</button>
+            <button className="signout" type="submit">Terminar sessão</button>
           </form>
         </span>
       </header>
 
       <div className="bar">
         <form method="get">
-          <input type="search" name="q" defaultValue={q} placeholder="Search by name, phone or email" aria-label="Search clients" />
-          <button className="btn" type="submit">Search</button>
+          <input type="search" name="q" defaultValue={q} placeholder="Procurar por nome, telefone ou email" aria-label="Procurar clientes" />
+          <button className="btn" type="submit">Procurar</button>
         </form>
-        <Link className="btn primary" href="/clients/new">Add client</Link>
+        <Link className="btn primary" href="/clients/new">Adicionar cliente</Link>
       </div>
 
       {rows.length === 0 ? (
         <div className="empty">
           {all.length === 0
-            ? "No clients yet. Select “Add client” to create the first one."
-            : "No clients match your search."}
+            ? "Ainda não há clientes. Selecione “Adicionar cliente” para criar o primeiro."
+            : "Nenhum cliente corresponde à pesquisa."}
         </div>
       ) : (
         <ul className="list">
@@ -67,7 +67,7 @@ export default async function ClientsPage({
                   <div className="meta">{[c.phone, c.email].filter(Boolean).join("  ·  ")}</div>
                 </div>
                 <span className={`tag${c.consent ? " on" : ""}`}>
-                  {c.consent ? "Promotions OK" : "No consent"}
+                  {c.consent ? "Promoções OK" : "Sem consentimento"}
                 </span>
               </Link>
             </li>

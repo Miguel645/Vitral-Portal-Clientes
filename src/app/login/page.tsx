@@ -9,20 +9,20 @@ export default async function LoginPage({
 
   return (
     <main className="narrow">
-      <h1 style={{ marginBottom: 18 }}>Vitral clients</h1>
+      <h1 style={{ marginBottom: 18 }}>Clientes Vitral</h1>
       <form action={login} className="card">
-        <h2>Sign in</h2>
+        <h2>Iniciar sessão</h2>
         <label>
           Email
           <input type="email" name="email" autoComplete="email" required />
         </label>
         <label>
-          Password
+          Palavra-passe
           <input type="password" name="password" autoComplete="current-password" required />
         </label>
-        {error ? <p className="err" role="alert">The email or password is wrong. Try again.</p> : null}
+        {error ? <p className="err" role="alert">O email ou a palavra-passe estão errados. Tente novamente.</p> : null}
         <div className="actions">
-          <button type="submit" className="btn primary">Sign in</button>
+          <button type="submit" className="btn primary">Iniciar sessão</button>
         </div>
       </form>
     </main>

@@ -25,34 +25,34 @@ export default function ClientForm({
         <h2>{title}</h2>
         {client?.id ? <input type="hidden" name="id" value={client.id} /> : null}
         <label>
-          Name
+          Nome
           <input type="text" name="name" defaultValue={client?.name ?? ""} autoComplete="off" required />
         </label>
         <label>
-          Mobile phone
+          Telemóvel
           <input type="tel" name="phone" defaultValue={client?.phone ?? ""} placeholder="+351 912 345 678" autoComplete="off" required />
         </label>
         <label>
-          Email (optional)
+          Email (opcional)
           <input type="email" name="email" defaultValue={client?.email ?? ""} autoComplete="off" />
         </label>
         <label>
-          Birth date (optional)
+          Data de nascimento (opcional)
           <input type="date" name="birth_date" defaultValue={client?.birth_date ?? ""} />
         </label>
         <label className="check">
           <input type="checkbox" name="consent" defaultChecked={client?.consent ?? false} />
-          <span>This client agreed to receive promotions</span>
+          <span>Este cliente aceitou receber promoções</span>
         </label>
         {error ? <p className="err" role="alert">{error}</p> : null}
         <div className="actions">
           {client?.id ? (
             <button type="submit" formAction={deleteClient} formNoValidate className="btn danger spacer">
-              Delete client
+              Eliminar cliente
             </button>
           ) : null}
-          <Link className="btn" href="/">Cancel</Link>
-          <button type="submit" className="btn primary">Save client</button>
+          <Link className="btn" href="/">Cancelar</Link>
+          <button type="submit" className="btn primary">Guardar cliente</button>
         </div>
       </form>
     </main>

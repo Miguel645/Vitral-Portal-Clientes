@@ -20,5 +20,5 @@ export default async function EditClientPage({
     .maybeSingle();
 
   if (!client) notFound();
-  return <ClientForm title="Edit client" client={client} error={error} />;
+  return <ClientForm title="Editar cliente" client={client} error={error} />;
 }
