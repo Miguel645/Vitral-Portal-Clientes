@@ -38,7 +38,7 @@ export default function PurchasesSection({
           <input type="hidden" name="client_id" value={clientId} />
           <label>
             Valor (€)
-            <input type="number" name="amount" step="0.01" min="0.01" required />
+            <input type="number" name="amount" inputMode="decimal" step="0.01" min="0.01" required />
           </label>
           <label>
             Data

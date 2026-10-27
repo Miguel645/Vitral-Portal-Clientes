@@ -41,13 +41,14 @@ export default function PromotionForm({
         </label>
         <label>
           Compra mínima (€)
-          <input type="number" name="min_spend" step="0.01" min="0.01" defaultValue={promotion?.min_spend ?? ""} required />
+          <input type="number" name="min_spend" inputMode="decimal" step="0.01" min="0.01" defaultValue={promotion?.min_spend ?? ""} required />
         </label>
         <label>
           Percentagem de desconto
           <input
             type="number"
             name="discount_percent"
+            inputMode="decimal"
             min="1"
             max="100"
             step="0.01"

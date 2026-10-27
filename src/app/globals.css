@@ -83,3 +83,31 @@ label.check input { width: auto; margin-top: 5px; }
 .actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 8px; }
 .actions .spacer { margin-right: auto; }
 .signout { background: none; border: 0; color: var(--muted); cursor: pointer; text-decoration: underline; padding: 0; }
+
+/* Layout helpers */
+header.top { flex-wrap: wrap; }
+.bar { flex-wrap: wrap; }
+.bar form { flex: 1 1 260px; min-width: 0; }
+.bar form input, .inline-form input { min-width: 0; }
+.inline-form { display: flex; gap: 8px; }
+ul.list a > div:first-child, .list-row > div:first-child { min-width: 0; }
+.name { overflow-wrap: anywhere; }
+.row-end { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.topnav a { padding: 4px 0; }
+
+/* Phones */
+@media (max-width: 560px) {
+  main { padding-top: 14px; }
+  h1 { font-size: 1.8rem; }
+  .card { padding: 16px; }
+  .btn { white-space: normal; text-align: center; }
+  .topnav { gap: 6px 18px; }
+  .topnav a { padding: 8px 0; }
+  .bar > .btn.primary { width: 100%; }
+  .bar.filters { gap: 6px; }
+  .bar.filters .btn { flex: 1 1 0; padding: 8px 4px; font-size: 0.9rem; }
+  .list-row.stack { flex-direction: column; align-items: stretch; gap: 8px; }
+  .list-row.stack .row-end { justify-content: space-between; }
+  .actions .btn { flex: 1 1 auto; }
+  .actions .spacer { order: 3; flex-basis: 100%; margin-right: 0; }
+}

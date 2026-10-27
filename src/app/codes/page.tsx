@@ -91,7 +91,7 @@ export default async function CodesPage({
 
       <div className="card" style={{ marginBottom: 16 }}>
         <h2>Verificar código</h2>
-        <form method="get" style={{ display: "flex", gap: 8 }}>
+        <form method="get" className="inline-form">
           <input
             type="text"
             name="check"
@@ -113,7 +113,7 @@ export default async function CodesPage({
         ) : null}
       </div>
 
-      <div className="bar">
+      <div className="bar filters">
         {FILTERS.map((f) => (
           <Link key={f.key} href={`/codes?filter=${f.key}`} className={`btn${activeFilter === f.key ? " primary" : ""}`}>
             {f.label}
@@ -126,7 +126,7 @@ export default async function CodesPage({
       ) : (
         <ul className="list">
           {filtered.map((c) => (
-            <li key={c.id} className="list-row">
+            <li key={c.id} className="list-row stack">
               <div>
                 <div className="name">{c.code}</div>
                 <div className="meta">
@@ -134,7 +134,7 @@ export default async function CodesPage({
                   {formatDate(c.valid_to)}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div className="row-end">
                 <span className={`tag${c.status.key === "active" ? " on" : " warn"}`}>{c.status.label}</span>
                 {!c.used_at ? (
                   <form action={markCodeUsed}>

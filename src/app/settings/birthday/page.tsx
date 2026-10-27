@@ -28,11 +28,11 @@ export default async function BirthdaySettingsPage({
         </label>
         <label>
           Percentagem de desconto
-          <input type="number" name="percent" min="1" max="100" step="0.01" defaultValue={settings.percent} required />
+          <input type="number" name="percent" inputMode="decimal" min="1" max="100" step="0.01" defaultValue={settings.percent} required />
         </label>
         <label>
           Validade em dias a partir do aniversário
-          <input type="number" name="valid_days" min="1" step="1" defaultValue={settings.valid_days} required />
+          <input type="number" name="valid_days" inputMode="numeric" min="1" step="1" defaultValue={settings.valid_days} required />
         </label>
         {error ? <p className="err" role="alert">{error}</p> : null}
         {message ? <p className="notice">{message}</p> : null}
