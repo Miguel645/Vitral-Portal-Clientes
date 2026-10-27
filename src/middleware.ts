@@ -35,11 +35,12 @@ export async function middleware(request: NextRequest) {
 
   const isLogin = request.nextUrl.pathname.startsWith("/login");
 
-  if (!user && !isLogin) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
+  // Login check temporarily disabled (re-enable by uncommenting below).
+  // if (!user && !isLogin) {
+  //   const url = request.nextUrl.clone();
+  //   url.pathname = "/login";
+  //   return NextResponse.redirect(url);
+  // }
   if (user && isLogin) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
