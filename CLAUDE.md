@@ -85,6 +85,7 @@ Miguel is the only user for now. He works as a systems/support engineer and is b
 - `src/lib/date.ts` date helpers: "today in Europe/Lisbon", dd/mm/aaaa formatting, datetime formatting
 - `src/lib/auth.ts` username validation pattern and the username-to-email mapping used for login
 - `src/lib/phone.ts` phone number normalization to international format
+- `src/app/_components/SmsCostWarning.tsx` red warnings under every SMS text box (campaigns, Criar vales, boas-vindas), based on the preview: accents that cost extra, and — owner decision, 2026-10-28 — "Atenção: esta mensagem tem N carateres e passa o limite de 160 …" whenever the message needs more than one SMS (70 with accents). Still no permanent counter line.
 - `src/lib/smsText.ts` SMS character/part counting (GSM-7 vs UCS-2), `removeAccents`, templating (`{nome}`/`{vale}` for campaigns, `{{name}}`/`{{codigo}}`/… for vale SMS), unsubscribe footer — pure, safe to import client-side
 - `src/lib/messaging/` the sending layer: `index.ts` (`sendSms`, `sendEmail`; `db` option = the admin client when there's no session, e.g. the birthday cron) — server-only, never import from a client component; `mode.ts` (`messagingMode`, `isSimulation`, safe to import from server pages/layout); `providers/` (simulation, Brevo, Twilio, and their error messages)
 - `src/middleware.ts` redirects signed-out visitors to `/login`; `/login` and `/u/*` are the only routes allowed without a session
