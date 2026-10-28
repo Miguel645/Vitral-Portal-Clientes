@@ -14,7 +14,8 @@ export async function sendTestSms(_prev: TestSmsState, formData: FormData): Prom
   if (!message.trim()) return { error: "Escreva a mensagem antes de enviar o teste." };
   if (!phone) return { error: "Indique um número de telefone para o teste." };
 
-  const testToken = crypto.randomUUID();
+  // Not a real client's token: the link in a test SMS opens "Link inválido".
+  const testToken = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
   const finalText = composeMessage(message, "Cliente Teste", appUrl, testToken);
 
   const result = await sendSms(phone, finalText);
@@ -36,7 +37,7 @@ export async function sendCampaign(_prev: SendAllState, formData: FormData): Pro
   // Only clients who want to receive messages, never anyone else.
   const { data, error } = await supabase
     .from("clients")
-    .select("id, name, phone, unsubscribe_token")
+    .select("id, name, phone, short_token")
     .eq("consent", true)
     .neq("phone", "");
   if (error) return { error: "Não foi possível ler a lista de clientes. Tente novamente." };
@@ -49,7 +50,7 @@ export async function sendCampaign(_prev: SendAllState, formData: FormData): Pro
   for (let i = 0; i < recipients.length; i += BATCH) {
     const results = await Promise.all(
       recipients.slice(i, i + BATCH).map((c) =>
-        sendSms(c.phone, composeMessage(message, clientFirstName(c.name), appUrl, c.unsubscribe_token), c.id)
+        sendSms(c.phone, composeMessage(message, clientFirstName(c.name), appUrl, c.short_token), c.id)
       )
     );
     for (const r of results) {

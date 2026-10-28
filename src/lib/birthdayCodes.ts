@@ -25,7 +25,7 @@ export async function runBirthdayCheck(): Promise<{ created: number; smsSent: nu
 
   const { data: clients } = await supabase
     .from("clients")
-    .select("id, name, phone, consent, birth_date, unsubscribe_token")
+    .select("id, name, phone, consent, birth_date, short_token")
     .eq("consent", true)
     .not("birth_date", "is", null);
 
@@ -78,7 +78,7 @@ export async function runBirthdayCheck(): Promise<{ created: number; smsSent: nu
         validTo: formatDate(validTo),
       },
       appUrl,
-      client.unsubscribe_token
+      client.short_token
     );
     const result = await sendSms(client.phone, text, client.id, supabase);
     if (result.ok) smsSent++;

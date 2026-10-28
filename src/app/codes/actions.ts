@@ -55,7 +55,7 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
   const supabase = await createClient();
   const { data: allClients } = await supabase
     .from("clients")
-    .select("id, name, phone, consent, unsubscribe_token");
+    .select("id, name, phone, consent, short_token");
   const clients = (allClients ?? []).filter((c) => target === "all" || pickedIds.has(c.id));
 
   if (clients.length === 0) {
@@ -113,7 +113,7 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
           validTo: formatDate(validTo),
         },
         appUrl,
-        c.unsubscribe_token
+        c.short_token
       );
       const result = await sendSms(c.phone, text, c.id);
       if (result.ok) sent++;

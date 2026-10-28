@@ -53,8 +53,9 @@ export function renderValeTemplate(
 }
 
 // Placeholder token for on-screen previews (the real one is per client).
-export const PREVIEW_TOKEN = "00000000-0000-0000-0000-000000000000";
+export const PREVIEW_TOKEN = "a1b2c3d4";
 
+// `token` is the client's short_token (8 characters).
 export function unsubscribeFooter(appUrl: string, token: string): string {
   const base = appUrl.replace(/\/$/, "");
   return `\nPara deixar de receber mensagens: ${base}/u/${token}`;
