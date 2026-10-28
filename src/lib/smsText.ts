@@ -40,6 +40,9 @@ export function renderValeTemplate(
     .split("{{validade}}").join(v.validTo);
 }
 
+// Placeholder token for on-screen previews (the real one is per client).
+export const PREVIEW_TOKEN = "00000000-0000-0000-0000-000000000000";
+
 export function unsubscribeFooter(appUrl: string, token: string): string {
   const base = appUrl.replace(/\/$/, "");
   return `\nPara deixar de receber mensagens: ${base}/u/${token}`;
@@ -47,4 +50,14 @@ export function unsubscribeFooter(appUrl: string, token: string): string {
 
 export function composeMessage(template: string, firstName: string, appUrl: string, token: string): string {
   return renderTemplate(template, firstName) + unsubscribeFooter(appUrl, token);
+}
+
+// Vale SMS get the same opt-out line as campaigns.
+export function composeValeMessage(
+  template: string,
+  v: { firstName: string; codes: string[]; discount: string; validTo: string },
+  appUrl: string,
+  token: string
+): string {
+  return renderValeTemplate(template, v) + unsubscribeFooter(appUrl, token);
 }

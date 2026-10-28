@@ -5,7 +5,7 @@ import { createVales, type CreateValesState } from "./actions";
 import { formatDiscount } from "@/lib/discount";
 import { formatDate } from "@/lib/date";
 import { formatPhone } from "@/lib/phone";
-import { clientFirstName, countSmsParts, renderValeTemplate } from "@/lib/smsText";
+import { clientFirstName, composeValeMessage, countSmsParts, PREVIEW_TOKEN } from "@/lib/smsText";
 
 type Client = { id: string; name: string; phone: string; consent: boolean };
 
@@ -29,11 +29,13 @@ export default function NewValesForm({
   preselectedId,
   today,
   defaultValidTo,
+  appUrl,
 }: {
   clients: Client[];
   preselectedId?: string;
   today: string;
   defaultValidTo: string;
+  appUrl: string;
 }) {
   const [state, formAction, pending] = useActionState<CreateValesState, FormData>(createVales, {});
 
@@ -125,12 +127,17 @@ export default function NewValesForm({
       : discountType === "percent" ? "10%" : "5,00 €";
 
   const previewName = clientFirstName(targets[0]?.name ?? "Maria");
-  const preview = renderValeTemplate(smsText, {
-    firstName: previewName,
-    codes: PREVIEW_CODES.slice(0, perClientNum),
-    discount: discountText,
-    validTo: validTo ? formatDate(validTo) : "",
-  });
+  const preview = composeValeMessage(
+    smsText,
+    {
+      firstName: previewName,
+      codes: PREVIEW_CODES.slice(0, perClientNum),
+      discount: discountText,
+      validTo: validTo ? formatDate(validTo) : "",
+    },
+    appUrl,
+    PREVIEW_TOKEN
+  );
   const counter = countSmsParts(preview);
   const needsConfirm = target === "all" && !confirming;
 

@@ -7,7 +7,7 @@ import { formatDiscount } from "@/lib/discount";
 import { formatDate } from "@/lib/date";
 import { sendSms } from "@/lib/sms";
 import { safeBack } from "./status";
-import { clientFirstName, renderValeTemplate } from "@/lib/smsText";
+import { clientFirstName, composeValeMessage } from "@/lib/smsText";
 
 // `field` names the form field the error is about, so it can be marked and read out with it.
 export type CreateValesState = { error?: string; field?: "value" | "valid_to" | "per_client" | "clients" | "sms_text" };
@@ -57,7 +57,7 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
   const supabase = await createClient();
   const { data: allClients } = await supabase
     .from("clients")
-    .select("id, name, phone, consent");
+    .select("id, name, phone, consent, unsubscribe_token");
   const clients = (allClients ?? []).filter((c) => target === "all" || pickedIds.has(c.id));
 
   if (clients.length === 0) {
@@ -100,17 +100,23 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
   let noConsent = 0;
   if (withSms) {
     const discountText = formatDiscount(discount);
+    const appUrl = process.env.APP_URL ?? "";
     for (const c of clients) {
       if (!c.consent) {
         noConsent++;
         continue;
       }
-      const text = renderValeTemplate(smsText, {
-        firstName: clientFirstName(c.name),
-        codes: codesByClient.get(c.id) ?? [],
-        discount: discountText,
-        validTo: formatDate(validTo),
-      });
+      const text = composeValeMessage(
+        smsText,
+        {
+          firstName: clientFirstName(c.name),
+          codes: codesByClient.get(c.id) ?? [],
+          discount: discountText,
+          validTo: formatDate(validTo),
+        },
+        appUrl,
+        c.unsubscribe_token
+      );
       const result = await sendSms(c.phone, text, c.id);
       if (result.ok) sent++;
       else failed++;

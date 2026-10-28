@@ -3,11 +3,10 @@
 import { useState } from "react";
 import { sendTestSms } from "./actions";
 import SubmitButton from "@/app/_components/SubmitButton";
-import { countSmsParts, composeMessage } from "@/lib/smsText";
+import { countSmsParts, composeMessage, PREVIEW_TOKEN } from "@/lib/smsText";
 
 const EXAMPLE_TEMPLATE = "Olá {{name}}, tem 10% de desconto em todos os artigos até domingo! Vitral";
 const PREVIEW_NAME = "Maria";
-const PREVIEW_TOKEN = "00000000-0000-0000-0000-000000000000";
 
 export default function CampaignComposer({
   initialMessage,
