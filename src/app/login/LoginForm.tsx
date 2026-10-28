@@ -14,9 +14,10 @@ export default function LoginForm() {
   return (
     <form action={formAction} className="card" key={JSON.stringify(state)} noValidate>
       <h2>Iniciar sessão</h2>
-      <label>
+      <label htmlFor="username">
         Utilizador
         <input
+          id="username"
           type="text"
           name="username"
           defaultValue={state.username ?? ""}
@@ -29,9 +30,10 @@ export default function LoginForm() {
         />
         {userErr && !generic ? <span className="err" id="username-err" role="alert">{userErr}</span> : null}
       </label>
-      <label>
+      <label htmlFor="password">
         Palavra-passe
         <input
+          id="password"
           type="password"
           name="password"
           autoComplete="current-password"

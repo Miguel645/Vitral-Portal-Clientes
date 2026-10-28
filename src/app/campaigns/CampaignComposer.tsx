@@ -60,9 +60,10 @@ export default function CampaignComposer({
     <>
       <div className="card">
         <h2>Nova campanha</h2>
-        <label>
+        <label htmlFor="campaign-message">
           Mensagem
           <textarea
+            id="campaign-message"
             ref={messageRef}
             name="message"
             value={message}
@@ -73,11 +74,12 @@ export default function CampaignComposer({
             rows={4}
             required
             aria-invalid={!!messageError}
+            aria-describedby={messageError ? "campaign-message-hint campaign-message-err" : "campaign-message-hint"}
           />
-          <span className="hint">
+          <span className="hint" id="campaign-message-hint">
             Use {"{{name}}"} para o primeiro nome do cliente. O link de cancelamento é adicionado automaticamente no fim.
           </span>
-          {messageError ? <span className="err" role="alert">{messageError}</span> : null}
+          {messageError ? <span className="err" id="campaign-message-err" role="alert">{messageError}</span> : null}
         </label>
 
         <p className="meta">
@@ -108,11 +110,19 @@ export default function CampaignComposer({
       >
         <h2>Enviar SMS de teste</h2>
         <input type="hidden" name="message" value={message} />
-        <label>
+        <label htmlFor="test-phone">
           Número de telefone para teste
-          <input type="tel" name="phone" autoComplete="off" required aria-invalid={testState.field === "phone"} />
-          <span className="hint">Número de 9 dígitos.</span>
-          {testState.field === "phone" ? <span className="err" role="alert">{testState.error}</span> : null}
+          <input
+            id="test-phone"
+            type="tel"
+            name="phone"
+            autoComplete="off"
+            required
+            aria-invalid={testState.field === "phone"}
+            aria-describedby={testState.field === "phone" ? "test-phone-hint test-phone-err" : "test-phone-hint"}
+          />
+          <span className="hint" id="test-phone-hint">Número de 9 dígitos.</span>
+          {testState.field === "phone" ? <span className="err" id="test-phone-err" role="alert">{testState.error}</span> : null}
         </label>
 
         {testState.error && testState.field !== "phone" ? <p className="err" role="alert">{testState.error}</p> : null}

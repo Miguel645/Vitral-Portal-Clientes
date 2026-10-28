@@ -187,18 +187,21 @@ export default function NewValesForm({
       }}
     >
       <div className="card">
-        <h2>Desconto</h2>
-        <label className="check">
-          <input type="radio" name="discount_type" value="percent" checked={discountType === "percent"} onChange={() => setDiscountType("percent")} />
-          <span>Percentagem (%)</span>
-        </label>
-        <label className="check">
-          <input type="radio" name="discount_type" value="amount" checked={discountType === "amount"} onChange={() => setDiscountType("amount")} />
-          <span>Valor em euros (€)</span>
-        </label>
-        <label>
+        <h2 id="discount-title">Desconto</h2>
+        <div role="radiogroup" aria-labelledby="discount-title">
+          <label className="check" htmlFor="type-percent">
+            <input id="type-percent" type="radio" name="discount_type" value="percent" checked={discountType === "percent"} onChange={() => setDiscountType("percent")} />
+            <span>Percentagem (%)</span>
+          </label>
+          <label className="check" htmlFor="type-amount">
+            <input id="type-amount" type="radio" name="discount_type" value="amount" checked={discountType === "amount"} onChange={() => setDiscountType("amount")} />
+            <span>Valor em euros (€)</span>
+          </label>
+        </div>
+        <label htmlFor="value">
           {discountType === "percent" ? "Percentagem de desconto" : "Valor do desconto em euros"}
           <input
+            id="value"
             type="text"
             name="value"
             inputMode="decimal"
@@ -210,16 +213,24 @@ export default function NewValesForm({
           <span className="hint" id="value-hint">{discountType === "percent" ? "Um número de 1 a 100." : "Maior que zero; pode ter cêntimos."}</span>
           {fieldError("value")}
         </label>
-        <label>
+        <label htmlFor="note">
           Descrição (opcional)
-          <input type="text" name="note" maxLength={80} value={note} onChange={(e) => setNote(e.target.value)} />
-          <span className="hint">Só para si. Não aparece na SMS.</span>
+          <input
+            id="note"
+            type="text"
+            name="note"
+            maxLength={80}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            aria-describedby="note-hint"
+          />
+          <span className="hint" id="note-hint">Só para si. Não aparece na SMS.</span>
         </label>
       </div>
 
       <div className="card">
         <h2>Validade</h2>
-        <label>
+        <label htmlFor="valid-from">
           Válido a partir de
           <DateInput
             id="valid-from"
@@ -231,7 +242,7 @@ export default function NewValesForm({
             required
           />
         </label>
-        <label>
+        <label htmlFor="valid-to">
           Válido até
           <DateInput
             id="valid-to"
@@ -246,21 +257,23 @@ export default function NewValesForm({
       </div>
 
       <div className="card">
-        <h2>Para quem</h2>
-        <label className="check">
-          <input type="radio" name="target" value="pick" checked={target === "pick"} onChange={() => {
-              setTarget("pick");
-              setConfirming(false);
-            }} />
-          <span>Escolher clientes (um ou vários)</span>
-        </label>
-        <label className="check">
-          <input type="radio" name="target" value="all" checked={target === "all"} onChange={() => {
-              setTarget("all");
-              setConfirming(false);
-            }} />
-          <span>Todos os clientes ({clients.length})</span>
-        </label>
+        <h2 id="target-title">Para quem</h2>
+        <div role="radiogroup" aria-labelledby="target-title">
+          <label className="check" htmlFor="target-pick">
+            <input id="target-pick" type="radio" name="target" value="pick" checked={target === "pick"} onChange={() => {
+                setTarget("pick");
+                setConfirming(false);
+              }} />
+            <span>Escolher clientes (um ou vários)</span>
+          </label>
+          <label className="check" htmlFor="target-all">
+            <input id="target-all" type="radio" name="target" value="all" checked={target === "all"} onChange={() => {
+                setTarget("all");
+                setConfirming(false);
+              }} />
+            <span>Todos os clientes ({clients.length})</span>
+          </label>
+        </div>
 
         {target === "pick" ? (
           <>
@@ -347,9 +360,10 @@ export default function NewValesForm({
           </>
         ) : null}
 
-        <label>
+        <label htmlFor="per-client">
           Quantos vales para cada cliente?
           <input
+            id="per-client"
             type="number"
             name="per_client"
             min="1"
@@ -367,15 +381,16 @@ export default function NewValesForm({
 
       <div className="card">
         <h2>SMS</h2>
-        <label className="check">
-          <input type="checkbox" name="send_sms" checked={withSms} onChange={(e) => setWithSms(e.target.checked)} />
+        <label className="check" htmlFor="send-sms">
+          <input id="send-sms" type="checkbox" name="send_sms" checked={withSms} onChange={(e) => setWithSms(e.target.checked)} />
           <span>Enviar SMS com o código do vale</span>
         </label>
         {withSms ? (
           <>
-            <label>
+            <label htmlFor="sms-text">
               Mensagem
               <textarea
+                id="sms-text"
                 name="sms_text"
                 value={smsText}
                 onChange={(e) => setSmsText(e.target.value)}

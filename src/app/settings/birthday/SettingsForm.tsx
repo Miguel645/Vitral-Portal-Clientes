@@ -15,16 +15,17 @@ export default function SettingsForm({
   return (
     <form action={formAction} className="card" key={JSON.stringify(v ?? null)} noValidate>
       <h2>Vale de aniversário</h2>
-      <label className="check">
-        <input type="checkbox" name="active" defaultChecked={v?.active ?? settings.active} aria-describedby="active-hint" />
+      <label className="check" htmlFor="active">
+        <input id="active" type="checkbox" name="active" defaultChecked={v?.active ?? settings.active} aria-describedby="active-hint" />
         <span>Criar vales de aniversário automaticamente</span>
       </label>
       <p className="hint" id="active-hint" style={{ marginTop: "calc(var(--sp-8) * -1)", marginBottom: "var(--sp-24)" }}>
         Só para clientes que querem receber mensagens. Cada um recebe um SMS com o código.
       </p>
-      <label>
+      <label htmlFor="percent">
         Percentagem de desconto
         <input
+          id="percent"
           type="number"
           name="percent"
           inputMode="decimal"
@@ -40,9 +41,10 @@ export default function SettingsForm({
         <span className="hint" id="percent-hint">Um número de 1 a 100.</span>
         {err("percent") ? <span className="err" id="percent-err" role="alert">{state.error}</span> : null}
       </label>
-      <label>
+      <label htmlFor="valid-days">
         Validade em dias a partir do aniversário
         <input
+          id="valid-days"
           type="number"
           name="valid_days"
           inputMode="numeric"

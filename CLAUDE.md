@@ -51,6 +51,7 @@ Miguel is the only user for now. He works as a systems/support engineer and is b
 - After every save/delete, redirect back with a `message` query param and show it with `<Notice message={message} />` (`src/app/_components/Notice.tsx`: a light tinted box, `role="status"`, and it removes the param from the address bar so a refresh doesn't show it again) at the top of the destination page (e.g. "Cliente guardado.", "Vale eliminado."). Error messages state what to do next, not just that something failed (e.g. "Verifique e tente novamente.").
 - Every form button shows progress and is disabled while working ("A guardar…", "A eliminar…"): `SubmitButton` (`src/app/_components/SubmitButton.tsx`, `useFormStatus`) for server-action forms, or the `pending` flag from `useActionState`.
 - Tick boxes and radio buttons are 24px (`label.check input`).
+- Every field has an `id` and its `<label htmlFor=…>` (also for tick boxes and radio buttons, so they're read out by their text, not "on"); each hint has an id linked with `aria-describedby`, and an error adds its own id to `aria-describedby` plus `aria-invalid`. Radio button pairs sit in a `role="radiogroup"` named by their card heading.
 - `src/app/loading.tsx`, `error.tsx` and `not-found.tsx` give Portuguese loading/error/404 screens.
 - Keep forms single-column, one screen's worth of related fields at a time; keep rarely-used things (like `/settings/birthday`) off the main flow, reachable from the nav but not front-and-centre.
 
