@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { normalizePhone, samePhone } from "@/lib/phone";
 import { digitsPattern } from "@/lib/clientSearch";
 import { INVALID_DATE, lisbonToday, parseDisplayDate } from "@/lib/date";
+import { welcomeAfterSave } from "@/lib/welcomeSms";
 
 export type ClientFields = { name: string; phone: string; email: string; birth_date: string; consent: boolean };
 
@@ -84,15 +85,23 @@ export async function saveClient(_prev: ClientFormState, formData: FormData): Pr
     if (dup) return { duplicateOf: dup.name, values };
   }
 
-  const { error: dbError } = id
-    ? await supabase.from("clients").update(row).eq("id", id)
-    : await supabase.from("clients").insert(row);
+  const { data: saved, error: dbError } = id
+    ? await supabase.from("clients").update(row).eq("id", id).select("id").maybeSingle()
+    : await supabase.from("clients").insert(row).select("id").single();
 
-  if (dbError) {
+  if (dbError || !saved) {
     return { error: "Não foi possível guardar. Verifique os dados e tente novamente.", values };
   }
   const message = id ? "Cliente atualizado." : "Cliente guardado.";
-  redirect(`/?message=${encodeURIComponent(message)}`);
+
+  // A client who receives messages and was never welcomed gets the welcome SMS now.
+  // If it fails, the client stays saved and their page says why.
+  const welcome = await welcomeAfterSave(supabase, saved.id);
+  if (welcome && "error" in welcome) {
+    const failed = `${message.slice(0, -1)}, mas a mensagem de boas-vindas não foi enviada: ${welcome.error}`;
+    redirect(`/clients/${saved.id}?message=${encodeURIComponent(failed)}`);
+  }
+  redirect(`/?message=${encodeURIComponent(welcome ? `${message} ${welcome.message}` : message)}`);
 }
 
 export async function deleteClient(formData: FormData) {

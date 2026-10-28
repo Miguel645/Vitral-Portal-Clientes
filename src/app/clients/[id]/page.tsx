@@ -33,13 +33,22 @@ export default async function EditClientPage({
   const { message } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: codes }] = await Promise.all([
+  const [{ data: client }, { data: codes }, { data: welcomeLog }] = await Promise.all([
     supabase.from("clients").select("id, name, phone, email, birth_date, consent, consent_at").eq("id", id).maybeSingle(),
     supabase
       .from("discount_codes")
       .select("id, code, kind, percent, amount_eur, note, valid_from, valid_to, used_at")
       .eq("client_id", id)
       .order("created_at", { ascending: false }),
+    // The welcome SMS that went out (clients who existed before it was added have none).
+    supabase
+      .from("sms_log")
+      .select("created_at")
+      .eq("client_id", id)
+      .eq("kind", "welcome")
+      .in("status", ["sent", "simulated"])
+      .order("created_at", { ascending: false })
+      .limit(1),
   ]);
 
   if (!client) notFound();
@@ -65,7 +74,7 @@ export default async function EditClientPage({
       <Notice message={message} />
 
       <div className="client-layout">
-        <ClientForm client={client} />
+        <ClientForm client={{ ...client, welcome_at: welcomeLog?.[0]?.created_at ?? null }} />
 
         <div className="card">
           <h2>Vales deste cliente</h2>

@@ -10,7 +10,7 @@ const LINKS = [
   { href: "/codes", label: "Vales", section: "/codes" },
   { href: "/verificar", label: "Verificar vale", section: "/verificar" },
   { href: "/campaigns", label: "Campanhas", section: "/campaigns" },
-  { href: "/settings/birthday", label: "Definições", section: "/settings" },
+  { href: "/settings", label: "Definições", section: "/settings" },
 ] as const;
 
 function isActive(pathname: string, section: string) {

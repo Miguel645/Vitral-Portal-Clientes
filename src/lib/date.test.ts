@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isBirthdayOn, parseDisplayDate } from "./date";
+import { isBirthdayOn, lisbonDate, parseDisplayDate } from "./date";
 
 describe("parseDisplayDate", () => {
   it("turns dd/mm/aaaa into an ISO date", () => {
@@ -51,5 +51,13 @@ describe("isBirthdayOn", () => {
   it("doesn't move someone born on 28 February", () => {
     expect(isBirthdayOn("2001-02-28", "2028-02-28")).toBe(true);
     expect(isBirthdayOn("2001-02-28", "2028-02-29")).toBe(false);
+  });
+});
+
+describe("lisbonDate", () => {
+  it("gives the Lisbon day of a database timestamp", () => {
+    expect(lisbonDate("2026-10-28T10:00:00Z")).toBe("2026-10-28");
+    // 23:30 UTC on 30 June is already 1 July in Lisbon (summer time, UTC+1).
+    expect(lisbonDate("2026-06-30T23:30:00Z")).toBe("2026-07-01");
   });
 });
