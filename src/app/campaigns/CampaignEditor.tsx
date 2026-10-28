@@ -17,6 +17,7 @@ export type EditableCampaign = {
   vale_amount_eur: number | null;
   vale_valid_from: string | null;
   vale_valid_to: string | null;
+  live_until: string | null;
 };
 
 type Intent = "save" | "test" | "send";
@@ -62,6 +63,15 @@ export default function CampaignEditor({
   // What's typed in the two date boxes (dd/mm/aaaa).
   const [validFrom, setValidFrom] = useState(formatDate(campaign?.vale_valid_from ?? today));
   const [validTo, setValidTo] = useState(formatDate(campaign?.vale_valid_to ?? defaultValidTo));
+  // "Clientes novos": until when clients added later also get it (daily, at 10:00).
+  const [live, setLive] = useState(campaign ? campaign.live_until != null : true);
+  const [liveUntil, setLiveUntil] = useState(campaign?.live_until ? formatDate(campaign.live_until) : "");
+  // Until it's typed in, the date follows the vale's "Válido até" (or today + 30 days).
+  // The box is remounted with each new suggestion; once typed in, its key stays put.
+  const [liveTyped, setLiveTyped] = useState(!!campaign?.live_until);
+  const suggestedLiveUntil = withVale ? validTo : formatDate(defaultValidTo);
+  const [liveKey, setLiveKey] = useState("typed");
+  const liveUntilText = liveTyped ? liveUntil : suggestedLiveUntil;
   const [phone, setPhone] = useState(testPhone);
   // "Enviar campanha" first shows a summary; only "Confirmar envio" sends.
   const [confirming, setConfirming] = useState(false);
@@ -92,6 +102,10 @@ export default function CampaignEditor({
       data.set("value", value);
       data.set("valid_from", validFrom);
       data.set("valid_to", validTo);
+    }
+    if (live) {
+      data.set("live", "on");
+      data.set("live_until", liveUntilText);
     }
     if (intent === "test") data.set("phone", phone);
     setPendingIntent(intent);
@@ -125,6 +139,12 @@ export default function CampaignEditor({
   const orderError =
     validFromIso && validToIso && validToIso < validFromIso
       ? "A data “Válido até” tem de ser igual ou depois de “Válido a partir de”."
+      : undefined;
+
+  const liveUntilIso = parseDisplayDate(liveUntilText);
+  const liveError =
+    withVale && liveUntilIso && validToIso && liveUntilIso > validToIso
+      ? "A data não pode ser depois de “Válido até” do vale: os clientes novos receberiam um vale já expirado."
       : undefined;
 
   const preview = composeCampaignMessage(
@@ -295,6 +315,48 @@ export default function CampaignEditor({
         ) : null}
       </div>
 
+      <div className="card">
+        <h2>Clientes novos</h2>
+        <label className="check" htmlFor="live">
+          <input
+            id="live"
+            type="checkbox"
+            checked={live}
+            onChange={(e) => {
+              setLive(e.target.checked);
+              setConfirming(false);
+            }}
+            aria-describedby="live-hint"
+          />
+          <span>Enviar também aos clientes novos</span>
+        </label>
+        <p className="hint" id="live-hint" style={{ marginTop: "calc(var(--sp-8) * -1)", marginBottom: live ? "var(--sp-24)" : 0 }}>
+          Todos os dias às 10h, quem foi adicionado depois do envio e recebe mensagens recebe esta campanha.
+        </p>
+        {live ? (
+          <label htmlFor="live-until" style={{ marginBottom: 0 }}>
+            Até
+            <DateInput
+              key={liveTyped ? liveKey : `suggested-${suggestedLiveUntil}`}
+              id="live-until"
+              name="live_until"
+              defaultValue={liveUntilText}
+              hint="Último dia em que os clientes novos a recebem."
+              error={liveError ?? (state.field === "live_until" ? state.error : undefined)}
+              onChange={(text) => {
+                if (!liveTyped) {
+                  setLiveKey(`suggested-${suggestedLiveUntil}`);
+                  setLiveTyped(true);
+                }
+                setLiveUntil(text);
+                setConfirming(false);
+              }}
+              required
+            />
+          </label>
+        ) : null}
+      </div>
+
       <form
         className="card"
         noValidate
@@ -357,6 +419,9 @@ export default function CampaignEditor({
                   Cada um recebe um vale de {discountText}
                   {validFromIso && validToIso ? `, válido de ${formatDate(validFromIso)} a ${formatDate(validToIso)}` : ""}
                 </li>
+              ) : null}
+              {live && liveUntilIso ? (
+                <li>Os clientes novos também a recebem, todos os dias às 10h, até {formatDate(liveUntilIso)}</li>
               ) : null}
               <li>Não é possível desfazer.</li>
             </ul>

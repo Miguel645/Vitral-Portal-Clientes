@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import Notice from "@/app/_components/Notice";
 import JustSavedLabel from "@/app/_components/JustSaved";
-import { formatDateTime } from "@/lib/date";
+import { formatDateTime, lisbonToday } from "@/lib/date";
 import { formatDiscount } from "@/lib/discount";
 
 type Row = {
@@ -13,6 +13,8 @@ type Row = {
   vale_amount_eur: number | null;
   created_at: string;
   sent_at: string | null;
+  live_until: string | null;
+  stopped_at: string | null;
 };
 
 export default async function CampaignsPage({
@@ -25,10 +27,13 @@ export default async function CampaignsPage({
   const supabase = await createClient();
   const { data } = await supabase
     .from("campaigns")
-    .select("id, name, status, vale_percent, vale_amount_eur, created_at, sent_at")
+    .select("id, name, status, vale_percent, vale_amount_eur, created_at, sent_at, live_until, stopped_at")
     .order("created_at", { ascending: false });
   const all = (data ?? []) as Row[];
   const rows = [...all.filter((c) => c.id === saved), ...all.filter((c) => c.id !== saved)];
+  // Sent, and still going out to new clients every day.
+  const today = lisbonToday();
+  const isLive = (c: Row) => c.status === "sent" && !c.stopped_at && !!c.live_until && c.live_until >= today;
 
   return (
     <main className="page-wide">
@@ -58,7 +63,9 @@ export default async function CampaignsPage({
                       {hasVale ? ` · Com vale de ${formatDiscount({ percent: c.vale_percent, amount_eur: c.vale_amount_eur })}` : ""}
                     </div>
                   </div>
-                  <span className={c.status === "sent" ? "tag on" : "tag"}>{c.status === "sent" ? "Enviada" : "Rascunho"}</span>
+                  <span className={c.status === "sent" ? "tag on" : "tag"}>
+                    {isLive(c) ? "Ativa" : c.status === "sent" ? "Enviada" : "Rascunho"}
+                  </span>
                 </Link>
               </li>
             );
