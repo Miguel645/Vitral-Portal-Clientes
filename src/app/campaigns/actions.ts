@@ -289,3 +289,14 @@ export async function stopCampaign(formData: FormData) {
   redirect(`/campaigns/${id}?message=${encodeURIComponent(message)}`);
 }
 
+// "Eliminar campanha" in the campaign's "…" menu. The SMS history and the vales it
+// created stay, without the campaign; a live or scheduled campaign stops going out.
+export async function deleteCampaign(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "");
+  if (/^[0-9a-f-]{36}$/i.test(id)) {
+    const supabase = await createClient();
+    await supabase.from("campaigns").delete().eq("id", id);
+  }
+  redirect(`/campaigns?message=${encodeURIComponent(name ? `Campanha ${name} eliminada.` : "Campanha eliminada.")}`);
+}

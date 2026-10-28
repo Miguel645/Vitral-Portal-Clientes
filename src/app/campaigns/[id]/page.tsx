@@ -9,7 +9,8 @@ import CampaignEditor from "../CampaignEditor";
 import { loadEditorData } from "../editorData";
 import { appUrlError } from "@/lib/optOut";
 import { pendingRecipients, RESUME_AFTER_MS } from "../recipients";
-import { resumeCampaign, stopCampaign } from "../actions";
+import { deleteCampaign, resumeCampaign, stopCampaign } from "../actions";
+import DeleteMenu from "@/app/_components/DeleteMenu";
 import SubmitButton from "@/app/_components/SubmitButton";
 
 // "Enviar campanha" sends one SMS per client in small groups, which can take a while.
@@ -40,6 +41,18 @@ export default async function CampaignPage({
         <Link className="navlink" href="/campaigns">Voltar às campanhas</Link>
         <h1>{campaign.name}</h1>
       </div>
+      <DeleteMenu
+        menuLabel={`Mais ações para a campanha ${campaign.name}`}
+        itemLabel="Eliminar campanha"
+        title={`Eliminar a campanha ${campaign.name}?`}
+        description={
+          campaign.status === "draft"
+            ? "Não é possível desfazer."
+            : "Não é possível desfazer. Deixa de ser enviada; o histórico de envios e os vales já criados ficam, mas sem campanha."
+        }
+        action={deleteCampaign}
+        fields={{ id: campaign.id, name: campaign.name }}
+      />
     </header>
   );
 
