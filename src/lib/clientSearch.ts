@@ -18,3 +18,16 @@ export function clientSearchFilter(raw: string): string | null {
   }
   return parts.join(",");
 }
+
+// The same rules as clientSearchFilter, checked in the browser: used to narrow the
+// results already on screen while the database answers for the newer text.
+export function matchesClientSearch(client: { name: string; phone: string; email?: string | null }, raw: string): boolean {
+  const term = raw.trim().replace(/["\\%*]/g, "").toLowerCase();
+  if (!term) return true;
+  if (client.name.toLowerCase().includes(term) || (client.email ?? "").toLowerCase().includes(term)) return true;
+  if (/^[\d\s+().-]+$/.test(term)) {
+    const digits = term.replace(/\D/g, "");
+    return digits !== "" && client.phone.replace(/\D/g, "").includes(digits);
+  }
+  return false;
+}
