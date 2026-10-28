@@ -4,6 +4,7 @@ import { createClient } from "../supabase/server";
 import { normalizePhone } from "../phone";
 import { messagingMode } from "./mode";
 import { simulationProvider } from "./providers/simulation";
+import { brevoProvider } from "./providers/brevo";
 import { twilioProvider } from "./providers/twilio";
 import type { SendResult, SmsProvider } from "./types";
 
@@ -21,7 +22,10 @@ export type SendOptions = {
 };
 
 function smsProvider(): SmsProvider {
-  return messagingMode() === "twilio" ? twilioProvider() : simulationProvider;
+  const mode = messagingMode();
+  if (mode === "brevo") return brevoProvider();
+  if (mode === "twilio") return twilioProvider();
+  return simulationProvider;
 }
 
 // The one way to send an SMS. Server-only: credentials never reach the browser.
