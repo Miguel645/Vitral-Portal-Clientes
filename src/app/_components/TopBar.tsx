@@ -9,18 +9,17 @@ const LINKS = [
   { href: "/", label: "Clientes", section: "/" },
   { href: "/codes", label: "Vales", section: "/codes" },
   { href: "/verificar", label: "Verificar vale", section: "/verificar" },
-  { href: "/campaigns/new", label: "Campanhas", section: "/campaigns" },
+  { href: "/campaigns", label: "Campanhas", section: "/campaigns" },
   { href: "/settings/birthday", label: "Definições", section: "/settings" },
 ] as const;
 
 function isActive(pathname: string, section: string) {
-  // The SMS log is opened from Definições, so that's the section it belongs to.
-  if (pathname.startsWith("/campaigns/log")) return section === "/settings";
   if (section === "/") return pathname === "/" || pathname.startsWith("/clients/");
   return pathname === section || pathname.startsWith(`${section}/`);
 }
 
-export default function TopBar() {
+// `simulation`: MESSAGING_MODE is "simulation", so a banner says nothing is really sent.
+export default function TopBar({ simulation }: { simulation: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDetailsElement>(null);
@@ -83,6 +82,7 @@ export default function TopBar() {
           <button type="submit" className="signout-btn">Sair</button>
         </form>
       </div>
+      {simulation ? <p className="sim-banner">Modo simulação — nenhuma SMS é enviada de verdade</p> : null}
     </header>
   );
 }
