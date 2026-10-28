@@ -6,9 +6,11 @@ import { generateUniqueCodes } from "@/lib/codes";
 import { formatDiscount } from "@/lib/discount";
 import { formatDate } from "@/lib/date";
 import { sendSms } from "@/lib/sms";
+import { safeBack } from "./status";
 import { clientFirstName, renderValeTemplate } from "@/lib/smsText";
 
-export type CreateValesState = { error?: string };
+// `field` names the form field the error is about, so it can be marked and read out with it.
+export type CreateValesState = { error?: string; field?: "value" | "valid_to" | "per_client" | "clients" | "sms_text" };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -28,28 +30,28 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
     return { error: "Escolha se o vale é uma percentagem ou um valor em euros." };
   }
   if (discountType === "percent" && (!Number.isFinite(value) || value < 1 || value > 100)) {
-    return { error: "Indique uma percentagem entre 1 e 100. Exemplo: 10." };
+    return { error: "Indique uma percentagem entre 1 e 100.", field: "value" };
   }
   if (discountType === "amount" && (!Number.isFinite(value) || value <= 0 || value > 10000)) {
-    return { error: "Indique um valor em euros maior que zero. Exemplo: 5 ou 7,50." };
+    return { error: "Indique um valor em euros maior que zero.", field: "value" };
   }
   if (!ISO_DATE.test(validFrom) || !ISO_DATE.test(validTo)) {
-    return { error: "Indique as duas datas de validade e tente novamente." };
+    return { error: "Indique as duas datas de validade e tente novamente.", field: "valid_to" };
   }
   if (validFrom > validTo) {
-    return { error: "A data “Válido até” tem de ser igual ou depois de “Válido a partir de”." };
+    return { error: "A data “Válido até” tem de ser igual ou depois de “Válido a partir de”.", field: "valid_to" };
   }
   if (!Number.isInteger(perClient) || perClient < 1 || perClient > 10) {
-    return { error: "Indique quantos vales por cliente, entre 1 e 10." };
+    return { error: "Indique quantos vales por cliente, entre 1 e 10.", field: "per_client" };
   }
   if (target !== "pick" && target !== "all") {
     return { error: "Escolha para quem são os vales." };
   }
   if (target === "pick" && pickedIds.size === 0) {
-    return { error: "Escolha pelo menos um cliente, ou escolha “Todos os clientes”." };
+    return { error: "Escolha pelo menos um cliente, ou escolha “Todos os clientes”.", field: "clients" };
   }
   if (withSms && !smsText.includes("{{codigo}}")) {
-    return { error: "A mensagem tem de incluir {{codigo}}, para o cliente receber o código do vale." };
+    return { error: "A mensagem tem de incluir {{codigo}}, para o cliente receber o código do vale.", field: "sms_text" };
   }
 
   const supabase = await createClient();
@@ -141,11 +143,12 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
 
 export async function markCodeUsed(formData: FormData) {
   const id = String(formData.get("id") ?? "");
+  const back = safeBack(String(formData.get("back") ?? ""));
   if (id) {
     const supabase = await createClient();
     await supabase.from("discount_codes").update({ used_at: new Date().toISOString() }).eq("id", id).is("used_at", null);
   }
-  redirect(`/codes?message=${encodeURIComponent("Vale marcado como usado.")}`);
+  redirect(`${back}?message=${encodeURIComponent("Vale marcado como usado.")}`);
 }
 
 export async function deleteCode(formData: FormData) {

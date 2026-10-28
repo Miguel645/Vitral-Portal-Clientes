@@ -1,12 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
-import { saveBirthdaySettings, runBirthdayCheckNow } from "./actions";
+import Notice from "@/app/_components/Notice";
+import SubmitButton from "@/app/_components/SubmitButton";
+import SettingsForm from "./SettingsForm";
+import { runBirthdayCheckNow } from "./actions";
 
 export default async function BirthdaySettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ message?: string }>;
 }) {
-  const { error, message } = await searchParams;
+  const { message } = await searchParams;
   const supabase = await createClient();
   const { data } = await supabase.from("birthday_settings").select("active, percent, valid_days").eq("id", 1).maybeSingle();
   const settings = data ?? { active: true, percent: 10, valid_days: 14 };
@@ -17,31 +20,9 @@ export default async function BirthdaySettingsPage({
         <h1>Definições</h1>
       </header>
 
-      <form action={saveBirthdaySettings} className="card">
-        <h2>Vale de aniversário</h2>
-        <label className="check">
-          <input type="checkbox" name="active" defaultChecked={settings.active} />
-          <span>Criar vales de aniversário automaticamente</span>
-        </label>
-        <p className="hint" style={{ marginTop: "calc(var(--sp-8) * -1)", marginBottom: "var(--sp-24)" }}>
-          Só são criados vales de aniversário para clientes que querem receber mensagens.
-        </p>
-        <label>
-          Percentagem de desconto
-          <input type="number" name="percent" inputMode="decimal" min="1" max="100" step="0.01" defaultValue={settings.percent} required />
-          <span className="hint">Um número de 1 a 100.</span>
-        </label>
-        <label>
-          Validade em dias a partir do aniversário
-          <input type="number" name="valid_days" inputMode="numeric" min="1" step="1" defaultValue={settings.valid_days} required />
-          <span className="hint">Dias a contar do aniversário.</span>
-        </label>
-        {error ? <p className="err" role="alert">{error}</p> : null}
-        {message ? <p className="notice">{message}</p> : null}
-        <div className="actions">
-          <button type="submit" className="btn primary">Guardar definições</button>
-        </div>
-      </form>
+      <Notice message={message} />
+
+      <SettingsForm settings={settings} />
 
       <form action={runBirthdayCheckNow} className="card">
         <h2>Testar agora</h2>
@@ -50,7 +31,7 @@ export default async function BirthdaySettingsPage({
           quantas vezes quiser, sem criar vales a mais.
         </p>
         <div className="actions">
-          <button type="submit" className="btn">Criar vales de aniversário agora</button>
+          <SubmitButton className="btn" pendingText="A criar…">Criar vales de aniversário agora</SubmitButton>
         </div>
       </form>
     </main>

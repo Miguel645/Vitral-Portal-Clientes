@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { formatPhone } from "@/lib/phone";
+import Notice from "@/app/_components/Notice";
 
 type Client = {
   id: string;
@@ -24,11 +26,16 @@ export default async function ClientsPage({
 
   const all = (data ?? []) as Client[];
   const term = q.trim().toLowerCase();
+  // Phone search ignores spaces and other separators ("912 345" finds "912345678").
+  const termDigits = /^[\d\s+().-]+$/.test(term) ? term.replace(/\D/g, "") : "";
   const rows = term
-    ? all.filter((c) =>
-        [c.name, c.phone, c.email ?? ""].some((v) => v.toLowerCase().includes(term))
+    ? all.filter(
+        (c) =>
+          [c.name, c.email ?? ""].some((v) => v.toLowerCase().includes(term)) ||
+          (termDigits !== "" && c.phone.replace(/\D/g, "").includes(termDigits))
       )
     : all;
+  const plural = (n: number) => (n === 1 ? "cliente" : "clientes");
 
   return (
     <main className="page-wide">
@@ -36,13 +43,13 @@ export default async function ClientsPage({
         <div>
           <h1>Clientes Vitral</h1>
           <span className="count">
-            {all.length} {all.length === 1 ? "cliente" : "clientes"}
+            {term ? `${rows.length} de ${all.length} ${plural(all.length)}` : `${all.length} ${plural(all.length)}`}
           </span>
         </div>
         <Link className="btn primary" href="/clients/new">Adicionar cliente</Link>
       </header>
 
-      {message ? <p className="notice">{message}</p> : null}
+      <Notice message={message} />
 
       <div className="bar">
         <form method="get">
@@ -64,7 +71,7 @@ export default async function ClientsPage({
               <Link href={`/clients/${c.id}`} className="list-link">
                 <div>
                   <div className="name">{c.name}</div>
-                  <div className="meta">{[c.phone, c.email].filter(Boolean).join("  ·  ")}</div>
+                  <div className="meta">{[formatPhone(c.phone), c.email].filter(Boolean).join("  ·  ")}</div>
                 </div>
                 <span className={`tag${c.consent ? " on" : ""}`}>
                   {c.consent ? "Recebe mensagens" : "Não recebe mensagens"}

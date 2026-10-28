@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import SubmitButton from "@/app/_components/SubmitButton";
 import { deleteCode } from "../../actions";
 
 export default async function DeleteCodePage({
@@ -35,7 +36,7 @@ export default async function DeleteCodePage({
           <form action={deleteCode}>
             <input type="hidden" name="id" value={code.id} />
             <input type="hidden" name="code" value={code.code} />
-            <button type="submit" className="btn danger">Sim, eliminar</button>
+            <SubmitButton className="btn danger" pendingText="A eliminar…">Sim, eliminar</SubmitButton>
           </form>
         </div>
       </div>

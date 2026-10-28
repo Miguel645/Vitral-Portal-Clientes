@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { logout } from "@/app/login/actions";
 
 const LINKS = [
-  { href: "/balcao", label: "Balcão", section: "/balcao" },
   { href: "/", label: "Clientes", section: "/" },
   { href: "/codes", label: "Vales", section: "/codes" },
+  { href: "/verificar", label: "Verificar vale", section: "/verificar" },
   { href: "/campaigns/new", label: "Campanhas", section: "/campaigns" },
   { href: "/settings/birthday", label: "Definições", section: "/settings" },
 ] as const;
@@ -21,6 +21,24 @@ function isActive(pathname: string, section: string) {
 export default function TopBar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDetailsElement>(null);
+
+  // Close the phone menu when tapping outside it or pressing Escape.
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   if (pathname.startsWith("/login") || pathname.startsWith("/u/")) return null;
 
@@ -42,7 +60,7 @@ export default function TopBar() {
           ))}
         </nav>
 
-        <details className="topbar-menu" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
+        <details ref={menuRef} className="topbar-menu" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
           <summary className="topbar-menu-btn">Menu</summary>
           <div className="topbar-menu-panel">
             {LINKS.map((l) => (

@@ -2,10 +2,11 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ClientForm from "../ClientForm";
-import { codeStatus } from "../../codes/status";
+import CopyButton from "@/app/_components/CopyButton";
+import Notice from "@/app/_components/Notice";
 import { formatDate } from "@/lib/date";
 import { formatDiscount, KIND_LABEL } from "@/lib/discount";
-
+import { codeStatus, tagClass } from "../../codes/status";
 
 type Vale = {
   id: string;
@@ -24,10 +25,10 @@ export default async function EditClientPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ message?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { message } = await searchParams;
   const supabase = await createClient();
 
   const [{ data: client }, { data: codes }] = await Promise.all([
@@ -44,8 +45,17 @@ export default async function EditClientPage({
 
   return (
     <main className="page-wide">
+      <header className="top">
+        <div>
+          <Link className="navlink" href="/">Voltar aos clientes</Link>
+          <h1>{client.name}</h1>
+        </div>
+      </header>
+
+      <Notice message={message} />
+
       <div className="client-layout">
-        <ClientForm title="Editar cliente" client={client} error={error} />
+        <ClientForm client={client} />
 
         <div className="card">
           <h2>Vales deste cliente</h2>
@@ -56,14 +66,22 @@ export default async function EditClientPage({
               {vales.map((v) => {
                 const status = codeStatus(v);
                 return (
-                  <li key={v.id} className="list-row">
+                  <li key={v.id} className="list-row stack">
                     <div>
                       <div className="name">{v.code}</div>
                       <div className="meta">
                         {KIND_LABEL[v.kind] ?? v.kind}{v.note ? ` · ${v.note}` : ""} · {formatDiscount(v)} · {formatDate(v.valid_from)} a {formatDate(v.valid_to)}
                       </div>
                     </div>
-                    <span className={`tag${status.key === "active" ? " on" : " warn"}`}>{status.label}</span>
+                    <div className="row-end">
+                      <span className={tagClass(status.key)}>{status.label}</span>
+                      {status.key === "active" ? <CopyButton text={v.code} /> : null}
+                      {!v.used_at ? (
+                        <Link href={`/codes/${v.id}/use?back=${encodeURIComponent(`/clients/${client.id}`)}`} className="btn">
+                          Marcar como usado
+                        </Link>
+                      ) : null}
+                    </div>
                   </li>
                 );
               })}

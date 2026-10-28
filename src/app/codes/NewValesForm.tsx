@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { createVales, type CreateValesState } from "./actions";
 import { formatDiscount } from "@/lib/discount";
 import { formatDate } from "@/lib/date";
+import { formatPhone } from "@/lib/phone";
 import { clientFirstName, countSmsParts, renderValeTemplate } from "@/lib/smsText";
 
 type Client = { id: string; name: string; phone: string; consent: boolean };
@@ -52,6 +53,8 @@ export default function NewValesForm({
   const comboRef = useRef<HTMLDivElement>(null);
   const [withSms, setWithSms] = useState(true);
   const [smsText, setSmsText] = useState(defaultSms(1));
+  // "Todos os clientes" asks for a second, explicit confirmation before creating/sending.
+  const [confirming, setConfirming] = useState(false);
 
   const byId = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const selectedClients = selected.map((id) => byId.get(id)).filter((c): c is Client => !!c);
@@ -129,6 +132,11 @@ export default function NewValesForm({
     validTo: validTo ? formatDate(validTo) : "",
   });
   const counter = countSmsParts(preview);
+  const needsConfirm = target === "all" && !confirming;
+
+  // Mark the field an error is about, and tie the error text to it for screen readers.
+  const invalid = (f: NonNullable<CreateValesState["field"]>) =>
+    state.field === f ? { "aria-invalid": true, "aria-describedby": "form-err" } : {};
 
   return (
     <form action={formAction} className="form-stack">
@@ -151,8 +159,9 @@ export default function NewValesForm({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             required
+            {...invalid("value")}
           />
-          <span className="hint">{discountType === "percent" ? "Um número de 1 a 100." : "O valor em euros."}</span>
+          <span className="hint">{discountType === "percent" ? "Um número de 1 a 100." : "Maior que zero; pode ter cêntimos."}</span>
         </label>
         <label>
           Descrição (opcional)
@@ -170,7 +179,15 @@ export default function NewValesForm({
         </label>
         <label>
           Válido até
-          <input type="date" name="valid_to" value={validTo} onChange={(e) => setValidTo(e.target.value)} required />
+          <input
+            type="date"
+            name="valid_to"
+            value={validTo}
+            min={validFrom || undefined}
+            onChange={(e) => setValidTo(e.target.value)}
+            required
+            {...invalid("valid_to")}
+          />
           <span className="hint">Último dia em que o vale pode ser usado.</span>
         </label>
       </div>
@@ -178,11 +195,17 @@ export default function NewValesForm({
       <div className="card">
         <h2>Para quem</h2>
         <label className="check">
-          <input type="radio" name="target" value="pick" checked={target === "pick"} onChange={() => setTarget("pick")} />
+          <input type="radio" name="target" value="pick" checked={target === "pick"} onChange={() => {
+              setTarget("pick");
+              setConfirming(false);
+            }} />
           <span>Escolher clientes (um ou vários)</span>
         </label>
         <label className="check">
-          <input type="radio" name="target" value="all" checked={target === "all"} onChange={() => setTarget("all")} />
+          <input type="radio" name="target" value="all" checked={target === "all"} onChange={() => {
+              setTarget("all");
+              setConfirming(false);
+            }} />
           <span>Todos os clientes ({clients.length})</span>
         </label>
 
@@ -200,9 +223,11 @@ export default function NewValesForm({
                     <li key={c.id} className="list-row">
                       <div>
                         <div className="name">{c.name}</div>
-                        <div className="meta">{c.phone}</div>
+                        <div className="meta">{formatPhone(c.phone)}</div>
                       </div>
-                      <button type="button" className="btn" onClick={() => remove(c.id)}>Tirar</button>
+                      <button type="button" className="btn" onClick={() => remove(c.id)} aria-label={`Remover ${c.name}`}>
+                        Remover
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -219,6 +244,8 @@ export default function NewValesForm({
                   aria-expanded={showDropdown}
                   aria-controls="client-options"
                   aria-autocomplete="list"
+                  aria-activedescendant={showDropdown && shown[highlight] ? `client-opt-${shown[highlight].id}` : undefined}
+                  {...invalid("clients")}
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -236,19 +263,22 @@ export default function NewValesForm({
                       <li className="combo-empty">Nenhum cliente encontrado.</li>
                     ) : (
                       shown.map((c, i) => (
-                        <li key={c.id} role="option" aria-selected={i === highlight}>
-                          <button
-                            type="button"
-                            className={i === highlight ? "combo-option active" : "combo-option"}
-                            onMouseEnter={() => setHighlight(i)}
-                            onClick={() => pick(c.id)}
-                          >
-                            <span className="name">{c.name}</span>
-                            <span className="meta">
-                              {c.phone}
-                              {!c.consent ? " · Não recebe mensagens" : ""}
-                            </span>
-                          </button>
+                        <li
+                          key={c.id}
+                          id={`client-opt-${c.id}`}
+                          role="option"
+                          aria-selected={i === highlight}
+                          className={i === highlight ? "combo-option active" : "combo-option"}
+                          onMouseEnter={() => setHighlight(i)}
+                          // Keep focus in the search box; the click below picks the client.
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => pick(c.id)}
+                        >
+                          <span className="name">{c.name}</span>
+                          <span className="meta">
+                            {formatPhone(c.phone)}
+                            {!c.consent ? " · Não recebe mensagens" : ""}
+                          </span>
                         </li>
                       ))
                     )}
@@ -274,6 +304,7 @@ export default function NewValesForm({
             value={perClient}
             onChange={(e) => onPerClientChange(e.target.value)}
             required
+            {...invalid("per_client")}
           />
           <span className="hint">De 1 a 10.</span>
         </label>
@@ -289,13 +320,20 @@ export default function NewValesForm({
           <>
             <label>
               Mensagem
-              <textarea name="sms_text" value={smsText} onChange={(e) => setSmsText(e.target.value)} rows={4} required />
+              <textarea
+                name="sms_text"
+                value={smsText}
+                onChange={(e) => setSmsText(e.target.value)}
+                rows={4}
+                required
+                {...invalid("sms_text")}
+              />
             </label>
             <p className="meta">
               {counter.length} carateres · {counter.parts} SMS por cliente
             </p>
-            <div className="card">
-              <h2>Pré-visualização</h2>
+            <div className="preview">
+              <p className="preview-title">Pré-visualização</p>
               <p className="meta" style={{ whiteSpace: "pre-wrap" }}>{preview}</p>
             </div>
           </>
@@ -318,11 +356,34 @@ export default function NewValesForm({
               : ""}
           </p>
         ) : null}
-        {state.error ? <p className="err" role="alert">{state.error}</p> : null}
+        {state.error ? <p className="err" id="form-err" role="alert">{state.error}</p> : null}
+        {confirming ? (
+          <div className="preview" role="alert">
+            <p className="preview-title">Tem a certeza?</p>
+            <p>
+              {`Vai criar ${valeCount} ${valeCount === 1 ? "vale" : "vales"} para todos os clientes (${targets.length})`}
+              {withSms
+                ? ` e enviar ${smsCount} SMS (${smsCount * counter.parts} ${smsCount * counter.parts === 1 ? "parte" : "partes"} no total).`
+                : "."}{" "}
+              Não é possível desfazer.
+            </p>
+          </div>
+        ) : null}
         <div className="actions">
-          <button type="submit" className="btn primary" disabled={pending || valeCount === 0}>
-            {pending ? "A criar…" : withSms ? "Criar e enviar vales" : "Criar vales"}
-          </button>
+          {confirming ? (
+            <button type="button" className="btn" onClick={() => setConfirming(false)} disabled={pending}>
+              Não, voltar
+            </button>
+          ) : null}
+          {needsConfirm ? (
+            <button type="button" className="btn primary" disabled={valeCount === 0} onClick={() => setConfirming(true)}>
+              {withSms ? "Criar e enviar vales" : "Criar vales"}
+            </button>
+          ) : (
+            <button type="submit" className="btn primary" disabled={pending || valeCount === 0}>
+              {pending ? "A criar…" : confirming ? (withSms ? "Sim, criar e enviar" : "Sim, criar vales") : withSms ? "Criar e enviar vales" : "Criar vales"}
+            </button>
+          )}
         </div>
       </div>
     </form>

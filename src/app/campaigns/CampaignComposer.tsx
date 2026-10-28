@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { sendTestSms } from "./actions";
+import SubmitButton from "@/app/_components/SubmitButton";
 import { countSmsParts, composeMessage } from "@/lib/smsText";
 
 const EXAMPLE_TEMPLATE = "Olá {{name}}, tem 10% de desconto em todos os artigos até domingo! Vitral";
@@ -74,7 +75,7 @@ export default function CampaignComposer({
       {testOk ? <p className="notice">{testOk}</p> : null}
 
       <div className="actions">
-        <button type="submit" className="btn primary">Enviar SMS de teste</button>
+        <SubmitButton pendingText="A enviar…">Enviar SMS de teste</SubmitButton>
       </div>
     </form>
   );

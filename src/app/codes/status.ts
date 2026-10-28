@@ -11,3 +11,13 @@ export function codeStatus(
   if (today > c.valid_to) return { key: "expired", label: "Expirado" };
   return { key: "active", label: "Ativo" };
 }
+
+// Tag colour is only reinforcement (the label always has a word): active = green, anything else = red.
+export function tagClass(key: StatusKey): string {
+  return key === "active" ? "tag on" : "tag warn";
+}
+
+// Where to go back to after confirming: the vales list or a client's page, nothing else.
+export function safeBack(back: string | undefined): string {
+  return back && /^\/clients\/[\w-]+$/.test(back) ? back : "/codes";
+}

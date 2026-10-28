@@ -100,6 +100,7 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
 .btn.danger { color: var(--warn); border-color: var(--warn); font-weight: 600; }
+.btn:disabled { opacity: 0.6; cursor: wait; }
 
 .bar { display: flex; gap: var(--sp-16); margin-bottom: var(--sp-16); flex-wrap: wrap; }
 .bar form { flex: 1 1 260px; display: flex; gap: var(--sp-8); min-width: 0; }
@@ -107,8 +108,7 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .inline-form { display: flex; gap: var(--sp-8); }
 .bar > .btn.primary { flex: 0 0 auto; }
 
-/* Responsive grids */
-.cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--sp-16); }
+/* Responsive grid */
 .client-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-32); align-items: start; }
 @media (max-width: 900px) {
   .client-layout { grid-template-columns: 1fr; }
@@ -133,8 +133,8 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
 .tag.on { border-color: var(--accent); color: var(--accent); }
 .tag.warn { border-color: var(--warn); color: var(--warn); }
 
-/* Balcão: huge, unmissable buttons for staff at the till */
-.balcao-btn { width: 100%; min-height: 84px; font-size: 1.3rem; font-weight: 700; }
+/* Huge, unmissable button for staff at the till (e.g. "Marcar como usado") */
+.big-btn { width: 100%; min-height: 84px; font-size: 1.3rem; font-weight: 700; }
 
 /* Big, clear voucher check result — always paired with words, never colour alone */
 .result-box {
@@ -167,7 +167,7 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
 .signout-btn {
   background: none;
   border: 0;
-  color: var(--warn);
+  color: var(--muted);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -222,14 +222,23 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
 /* Secondary text links (not main navigation) */
 .navlink { color: var(--muted); text-decoration: underline; font-size: 0.95rem; }
 
-.notice { color: var(--accent); font-size: 1rem; font-weight: 500; margin: 0; }
+.notice {
+  margin: 0;
+  padding: var(--sp-12) var(--sp-16);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 500;
+}
 .empty { padding: var(--sp-32) var(--sp-16); text-align: center; color: var(--muted); font-size: 1rem; }
 .form-stack { display: grid; gap: var(--sp-32); }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: var(--sp-24); }
 label { display: block; margin-bottom: var(--sp-24); font-size: 1rem; color: var(--ink); font-weight: 500; }
 label input, label select, label textarea { margin-top: var(--sp-8); color: var(--ink); font-weight: 400; }
 label.check { display: flex; gap: var(--sp-12); align-items: flex-start; color: var(--ink); }
-label.check input { width: auto; min-height: auto; margin-top: var(--sp-4); }
+label.check input { width: 24px; height: 24px; min-height: 0; flex: 0 0 auto; margin: 2px 0 0; accent-color: var(--accent); }
 .combo { margin-bottom: var(--sp-24); }
 .combo > label { margin-bottom: var(--sp-8); }
 .combo-box { position: relative; }
@@ -241,7 +250,7 @@ label.check input { width: auto; min-height: auto; margin-top: var(--sp-4); }
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 .combo-option {
-  display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-4);
+  display: flex; list-style: none; flex-direction: column; align-items: flex-start; gap: var(--sp-4);
   width: 100%; min-height: 48px; padding: var(--sp-12) var(--sp-16);
   border: 0; background: none; text-align: left; cursor: pointer;
 }
@@ -249,6 +258,16 @@ label.check input { width: auto; min-height: auto; margin-top: var(--sp-4); }
 .combo-empty { padding: var(--sp-12) var(--sp-16); color: var(--muted); }
 .hint { display: block; margin-top: var(--sp-8); font-size: 0.95rem; color: var(--muted); font-weight: 400; }
 .err { color: var(--warn); font-size: 1rem; margin: 0 0 var(--sp-16); }
+label .err, .combo .err { display: block; margin: var(--sp-8) 0 0; font-weight: 500; }
+[aria-invalid="true"] { border-color: var(--warn); }
+
+/* Items stacked inside one section (e.g. the vale check result and its button) */
+.stack > * + * { margin-top: var(--sp-24); }
+
+/* A shaded box for previews and summaries inside a card (lighter than a card inside a card) */
+.preview { background: var(--bg); border-radius: 8px; padding: var(--sp-16); margin-bottom: var(--sp-16); }
+.preview-title { font-weight: 600; margin: 0 0 var(--sp-8); }
+.preview p { margin: 0; }
 .actions { display: flex; gap: var(--sp-16); justify-content: flex-end; flex-wrap: wrap; margin-top: var(--sp-12); }
 
 /* Destructive actions always live apart from Guardar/Cancelar */

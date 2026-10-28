@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { codeStatus, type StatusKey } from "./status";
+import { codeStatus, tagClass, type StatusKey } from "./status";
+import Notice from "@/app/_components/Notice";
 import { formatDate, lisbonToday } from "@/lib/date";
 import { formatDiscount, KIND_LABEL } from "@/lib/discount";
-import { markCodeUsed } from "./actions";
 
 type Row = {
   id: string;
@@ -20,11 +20,11 @@ type Row = {
 };
 
 
-const FILTERS: { key: string; label: string }[] = [
-  { key: "all", label: "Todos" },
-  { key: "active", label: "Ativos" },
-  { key: "used", label: "Usados" },
-  { key: "expired", label: "Expirados" },
+const FILTERS: { key: string; label: string; empty: string }[] = [
+  { key: "all", label: "Todos", empty: "Ainda não há vales." },
+  { key: "active", label: "Ativos", empty: "Não há vales ativos." },
+  { key: "used", label: "Usados", empty: "Não há vales usados." },
+  { key: "expired", label: "Expirados", empty: "Não há vales expirados." },
 ];
 
 export default async function CodesPage({
@@ -54,7 +54,7 @@ export default async function CodesPage({
         <Link href="/codes/new" className="btn primary">Criar vales</Link>
       </header>
 
-      {message ? <p className="notice">{message}</p> : null}
+      <Notice message={message} />
 
       <div className="bar filters">
         {FILTERS.map((f) => (
@@ -65,7 +65,10 @@ export default async function CodesPage({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="empty">Não há vales para mostrar.</div>
+        <div className="empty">
+          <p style={{ margin: "0 0 var(--sp-16)" }}>{FILTERS.find((f) => f.key === activeFilter)?.empty}</p>
+          <Link href="/codes/new" className="btn">Criar vales</Link>
+        </div>
       ) : (
         <ul className="list">
           {filtered.map((c) => (
@@ -78,12 +81,9 @@ export default async function CodesPage({
                 </div>
               </div>
               <div className="row-end">
-                <span className={`tag${c.status.key === "active" ? " on" : " warn"}`}>{c.status.label}</span>
+                <span className={tagClass(c.status.key)}>{c.status.label}</span>
                 {!c.used_at ? (
-                  <form action={markCodeUsed}>
-                    <input type="hidden" name="id" value={c.id} />
-                    <button type="submit" className="btn">Marcar como usado</button>
-                  </form>
+                  <Link href={`/codes/${c.id}/use`} className="btn">Marcar como usado</Link>
                 ) : null}
                 <Link href={`/codes/${c.id}/delete`} className="btn danger">Eliminar vale</Link>
               </div>
