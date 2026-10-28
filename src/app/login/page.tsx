@@ -16,12 +16,10 @@ export default async function LoginPage({
         <label>
           Utilizador
           <input type="text" name="username" autoComplete="username" required />
-          <span className="hint">Letras, números, pontos, traços (-) ou traços-baixos (_). Exemplo: miguel.ferreira.</span>
         </label>
         <label>
           Palavra-passe
           <input type="password" name="password" autoComplete="current-password" required />
-          <span className="hint">A palavra-passe da sua conta.</span>
         </label>
         {error ? (
           <p className="err" role="alert">

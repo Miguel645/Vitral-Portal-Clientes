@@ -39,8 +39,7 @@ export default function CampaignComposer({
           required
         />
         <span className="hint">
-          Use {"{{name}}"} para o primeiro nome do cliente. Exemplo: &ldquo;{EXAMPLE_TEMPLATE}&rdquo;. O link de
-          cancelamento é adicionado automaticamente no fim.
+          Use {"{{name}}"} para o primeiro nome do cliente. O link de cancelamento é adicionado automaticamente no fim.
         </span>
       </label>
 
@@ -67,8 +66,7 @@ export default function CampaignComposer({
 
       <label>
         Número de telefone para teste
-        <input type="tel" name="phone" placeholder="912 345 678" autoComplete="off" required />
-        <span className="hint">Número português de 9 dígitos a começar por 9. Exemplo: 912 345 678.</span>
+        <input type="tel" name="phone" autoComplete="off" required />
       </label>
 
       {testError ? <p className="err" role="alert">{testError}</p> : null}

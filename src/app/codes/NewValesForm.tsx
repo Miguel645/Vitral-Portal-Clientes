@@ -97,19 +97,12 @@ export default function NewValesForm({
             inputMode="decimal"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder={discountType === "percent" ? "Ex.: 10" : "Ex.: 5 ou 7,50"}
             required
           />
-          <span className="hint">
-            {discountType === "percent"
-              ? "Um número entre 1 e 100. Exemplo: 10 dá 10% de desconto."
-              : "Exemplo: 5 dá 5,00 € de desconto; 7,50 dá 7,50 €."}
-          </span>
         </label>
         <label>
           Descrição (opcional)
-          <input type="text" name="note" maxLength={80} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ex.: Saldos de Natal" />
-          <span className="hint">Só para si, aparece na lista de vales. Exemplo: “Cliente habitual” ou “Saldos de Natal”.</span>
+          <input type="text" name="note" maxLength={80} value={note} onChange={(e) => setNote(e.target.value)} />
         </label>
       </div>
 
@@ -118,12 +111,10 @@ export default function NewValesForm({
         <label>
           Válido a partir de
           <input type="date" name="valid_from" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} required />
-          <span className="hint">Normalmente hoje. Exemplo: {formatDate(today)}.</span>
         </label>
         <label>
           Válido até
           <input type="date" name="valid_to" value={validTo} onChange={(e) => setValidTo(e.target.value)} required />
-          <span className="hint">Último dia em que o vale pode ser usado. Exemplo: {formatDate(defaultValidTo)}.</span>
         </label>
       </div>
 
@@ -167,10 +158,9 @@ export default function NewValesForm({
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Ex.: Maria ou 912345678"
+                placeholder="Nome ou telemóvel"
                 autoComplete="off"
               />
-              <span className="hint">Procure pelo nome ou pelo telemóvel e marque os clientes que quer.</span>
             </label>
 
             {term && matches.length === 0 ? <p className="meta">Nenhum cliente encontrado para “{search.trim()}”.</p> : null}
@@ -201,7 +191,6 @@ export default function NewValesForm({
             onChange={(e) => setPerClient(e.target.value)}
             required
           />
-          <span className="hint">Normalmente 1. Exemplo: 2 dá dois vales diferentes a cada cliente.</span>
         </label>
       </div>
 
@@ -217,9 +206,8 @@ export default function NewValesForm({
               Mensagem
               <textarea name="sms_text" value={smsText} onChange={(e) => setSmsText(e.target.value)} rows={4} required />
               <span className="hint">
-                {"{{name}}"} = primeiro nome, {"{{codigo}}"} = código do vale (obrigatório), {"{{desconto}}"} = ex.
-                “10%”, {"{{validade}}"} = ex. “{formatDate(defaultValidTo)}”. O link para deixar de receber mensagens é
-                adicionado no fim.
+                {"{{name}}"} = primeiro nome, {"{{codigo}}"} = código do vale (obrigatório), {"{{desconto}}"} = desconto,
+                {"{{validade}}"} = data final. O link para deixar de receber mensagens é adicionado no fim.
               </span>
             </label>
             <p className="meta">

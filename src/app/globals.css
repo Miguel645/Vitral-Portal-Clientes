@@ -77,6 +77,9 @@ summary:focus-visible {
   outline-offset: 2px;
 }
 textarea { resize: vertical; min-height: 110px; }
+/* iOS Safari gives date inputs a fixed intrinsic width that overflows narrow cards */
+input[type="date"] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 
 /* Buttons */
 .btn {

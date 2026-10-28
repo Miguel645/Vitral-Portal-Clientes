@@ -29,12 +29,10 @@ export default async function BirthdaySettingsPage({
         <label>
           Percentagem de desconto
           <input type="number" name="percent" inputMode="decimal" min="1" max="100" step="0.01" defaultValue={settings.percent} required />
-          <span className="hint">Desconto do vale de aniversário. Exemplo: 10 (para 10%).</span>
         </label>
         <label>
           Validade em dias a partir do aniversário
           <input type="number" name="valid_days" inputMode="numeric" min="1" step="1" defaultValue={settings.valid_days} required />
-          <span className="hint">Quantos dias, a contar do aniversário, o vale continua válido. Exemplo: 14.</span>
         </label>
         {error ? <p className="err" role="alert">{error}</p> : null}
         {message ? <p className="notice">{message}</p> : null}

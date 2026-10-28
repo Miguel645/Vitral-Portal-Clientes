@@ -49,12 +49,10 @@ export default async function VerificarValePage({
             type="text"
             name="code"
             defaultValue={code}
-            placeholder="Ex.: ABCD1234"
             style={{ textTransform: "uppercase" }}
             autoFocus
             required
           />
-          <span className="hint">Escreva o código tal como aparece no vale.</span>
         </label>
         <div className="actions">
           <button type="submit" className="btn primary">Verificar</button>
