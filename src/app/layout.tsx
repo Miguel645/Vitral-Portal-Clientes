@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import TopBar from "./_components/TopBar";
+import { isSimulation } from "@/lib/messaging/mode";
 
 export const metadata: Metadata = {
   title: "Clientes Vitral",
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <TopBar />
+        <TopBar simulation={isSimulation()} />
         {children}
       </body>
     </html>

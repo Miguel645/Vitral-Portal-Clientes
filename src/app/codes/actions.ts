@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateUniqueCodes } from "@/lib/codes";
 import { formatDiscount } from "@/lib/discount";
 import { formatDate, INVALID_DATE, parseDisplayDate } from "@/lib/date";
-import { sendSms } from "@/lib/sms";
+import { isSimulation, sendSms } from "@/lib/messaging";
 import { safeBack } from "./status";
 import { clientFirstName, composeValeMessage } from "@/lib/smsText";
 
@@ -125,7 +125,7 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
         appUrl,
         c.short_token
       );
-      const result = await sendSms(c.phone, text, c.id);
+      const result = await sendSms(c.phone, text, { clientId: c.id });
       if (result.ok) sent++;
       else failed++;
     }
@@ -140,11 +140,11 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
     );
   }
   if (withSms) {
-    const simulated = process.env.SMS_MODE !== "twilio";
+    const simulated = isSimulation();
     parts.push(
       `${sent} SMS ${simulated ? "simulados (modo de teste, nada foi enviado de verdade)" : "enviados"}.`
     );
-    if (failed > 0) parts.push(`${failed} SMS falharam — veja o registo de SMS em Definições.`);
+    if (failed > 0) parts.push(`${failed} SMS falharam — veja o Histórico de envios, em Campanhas.`);
     if (noConsent > 0) {
       parts.push(
         `${noConsent} ${noConsent === 1 ? "cliente não recebe" : "clientes não recebem"} mensagens, por isso não ${noConsent === 1 ? "recebeu" : "receberam"} SMS (o vale fica na ficha do cliente).`

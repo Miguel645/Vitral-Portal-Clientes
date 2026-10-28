@@ -148,6 +148,17 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
   gap: var(--sp-24);
   min-height: 64px;
 }
+/* Shown under the top bar while MESSAGING_MODE is "simulation". */
+.sim-banner {
+  margin: 0;
+  padding: var(--sp-8) var(--sp-16);
+  border-top: 1px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 12%, var(--surface));
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: center;
+}
 .topbar-brand { font: 600 1.3rem/1 "Cormorant Garamond", Georgia, serif; color: var(--ink); text-decoration: none; flex: 0 0 auto; }
 .topbar-nav { display: flex; align-items: center; gap: var(--sp-16); flex: 1; }
 .topbar-link { color: var(--ink); text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: var(--sp-8) 0; border-bottom: 2px solid transparent; }
@@ -260,6 +271,10 @@ label .err, .combo .err { display: block; margin: var(--sp-8) 0 0; font-size: 0.
 .preview p { margin: 0; }
 .summary { margin: 0 0 var(--sp-16); padding-left: var(--sp-24); }
 .summary li + li { margin-top: var(--sp-4); }
+/* History filters: two selects side by side, stacked on phones. */
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); column-gap: var(--sp-24); }
+.filters .actions { grid-column: 1 / -1; margin-top: 0; }
+.err-text { color: var(--warn); }
 .actions { display: flex; gap: var(--sp-16); justify-content: flex-end; flex-wrap: wrap; margin-top: var(--sp-12); }
 
 /* "…" (more actions) menu: destructive actions live here, never next to Guardar */

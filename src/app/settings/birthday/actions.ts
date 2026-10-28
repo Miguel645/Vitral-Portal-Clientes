@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { runBirthdayCheck } from "@/lib/birthdayCodes";
+import { isSimulation } from "@/lib/messaging";
 
 function parse(formData: FormData) {
   const active = formData.get("active") === "on";
@@ -56,9 +57,9 @@ export async function runBirthdayCheckNow() {
     parts.push("Não há vales novos para criar hoje.");
   } else {
     parts.push(`Foram criados ${result.created} ${result.created === 1 ? "vale" : "vales"} de aniversário.`);
-    const simulated = process.env.SMS_MODE !== "twilio";
+    const simulated = isSimulation();
     parts.push(`${result.smsSent} SMS ${simulated ? "simulados (modo de teste, nada foi enviado de verdade)" : "enviados"}.`);
-    if (result.smsFailed > 0) parts.push(`${result.smsFailed} SMS falharam — veja o registo de SMS em Definições.`);
+    if (result.smsFailed > 0) parts.push(`${result.smsFailed} SMS falharam — veja o Histórico de envios, em Campanhas.`);
   }
   const message = parts.join(" ");
   redirect(`/settings/birthday?message=${encodeURIComponent(message)}`);
