@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import TopNav from "@/app/_components/TopNav";
 import { formatDate } from "@/lib/date";
 import { promotionStatus } from "./status";
 
@@ -37,18 +36,13 @@ export default async function PromotionsPage({
   }
 
   return (
-    <main>
+    <main className="page-wide">
       <header className="top">
         <h1>Promoções de vales</h1>
+        <Link className="btn primary" href="/promotions/new">Adicionar promoção</Link>
       </header>
 
-      <TopNav current="promotions" />
-
       {message ? <p className="notice">{message}</p> : null}
-
-      <div className="bar">
-        <Link className="btn primary" href="/promotions/new">Adicionar promoção</Link>
-      </div>
 
       {rows.length === 0 ? (
         <div className="empty">Ainda não há promoções. Selecione “Adicionar promoção” para criar a primeira.</div>
@@ -58,9 +52,9 @@ export default async function PromotionsPage({
             const status = promotionStatus(p);
             const count = counts.get(p.id) ?? 0;
             return (
-              <li key={p.id} style={{ padding: 18 }}>
-                <p style={{ margin: "0 0 6px", fontWeight: 600 }}>{p.name}</p>
-                <p className="meta" style={{ margin: "0 0 10px" }}>
+              <li key={p.id} style={{ padding: "var(--sp-16)" }}>
+                <p style={{ margin: "0 0 var(--sp-8)", fontWeight: 600 }}>{p.name}</p>
+                <p className="meta" style={{ margin: "0 0 var(--sp-12)" }}>
                   Vale de {p.discount_percent}% de desconto, válido de {formatDate(p.reward_valid_from)} a{" "}
                   {formatDate(p.reward_valid_to)}.{p.condition ? ` Condição: ${p.condition}.` : ""}
                 </p>
@@ -73,7 +67,7 @@ export default async function PromotionsPage({
                   </span>
                   <span className="row-end" style={{ padding: 0 }}>
                     <Link href={`/promotions/${p.id}`} className="btn">Editar</Link>
-                    <Link href={`/promotions/${p.id}/delete`} className="btn danger">Eliminar</Link>
+                    <Link href={`/promotions/${p.id}/delete`} className="btn danger">Eliminar promoção</Link>
                     <Link href={`/promotions/${p.id}/criar-vale`} className="btn primary">Criar vale</Link>
                   </span>
                 </div>

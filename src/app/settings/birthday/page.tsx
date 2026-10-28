@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import TopNav from "@/app/_components/TopNav";
 import { saveBirthdaySettings, runBirthdayCheckNow } from "./actions";
 
 export default async function BirthdaySettingsPage({
@@ -13,12 +12,10 @@ export default async function BirthdaySettingsPage({
   const settings = data ?? { active: true, percent: 10, valid_days: 14 };
 
   return (
-    <main className="narrow">
+    <main className="page-medium">
       <header className="top">
         <h1>Definições</h1>
       </header>
-
-      <TopNav current="settings" />
 
       <form action={saveBirthdaySettings} className="card">
         <h2>Vale de aniversário</h2>
@@ -26,6 +23,9 @@ export default async function BirthdaySettingsPage({
           <input type="checkbox" name="active" defaultChecked={settings.active} />
           <span>Criar vales de aniversário automaticamente</span>
         </label>
+        <p className="hint" style={{ marginTop: "calc(var(--sp-8) * -1)", marginBottom: "var(--sp-24)" }}>
+          Só são criados vales de aniversário para clientes que querem receber mensagens.
+        </p>
         <label>
           Percentagem de desconto
           <input type="number" name="percent" inputMode="decimal" min="1" max="100" step="0.01" defaultValue={settings.percent} required />
@@ -43,11 +43,11 @@ export default async function BirthdaySettingsPage({
         </div>
       </form>
 
-      <form action={runBirthdayCheckNow} className="card" style={{ marginTop: 20 }}>
+      <form action={runBirthdayCheckNow} className="card">
         <h2>Testar agora</h2>
-        <p className="meta" style={{ marginBottom: 14 }}>
-          Cria um vale de aniversário para quem faz anos hoje e aceitou promoções. Pode usar este botão quantas
-          vezes quiser, sem criar vales a mais.
+        <p className="meta" style={{ marginBottom: "var(--sp-16)" }}>
+          Cria um vale de aniversário para quem faz anos hoje e quer receber mensagens. Pode usar este botão
+          quantas vezes quiser, sem criar vales a mais.
         </p>
         <div className="actions">
           <button type="submit" className="btn">Criar vales de aniversário agora</button>

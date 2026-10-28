@@ -40,31 +40,33 @@ export default async function EditClientPage({
   const vales = (codes ?? []) as Vale[];
 
   return (
-    <main className="narrow">
-      <ClientForm title="Editar cliente" client={client} error={error} />
+    <main className="page-wide">
+      <div className="client-layout">
+        <ClientForm title="Editar cliente" client={client} error={error} />
 
-      <div className="card" style={{ marginTop: 20 }}>
-        <h2>Vales deste cliente</h2>
-        {vales.length === 0 ? (
-          <p className="meta">Ainda não há vales para este cliente.</p>
-        ) : (
-          <ul className="list">
-            {vales.map((v) => {
-              const status = codeStatus(v);
-              return (
-                <li key={v.id} className="list-row">
-                  <div>
-                    <div className="name">{v.code}</div>
-                    <div className="meta">
-                      {KIND_LABEL[v.kind]} · {v.percent}% · {formatDate(v.valid_from)} a {formatDate(v.valid_to)}
+        <div className="card">
+          <h2>Vales deste cliente</h2>
+          {vales.length === 0 ? (
+            <p className="meta">Ainda não há vales para este cliente.</p>
+          ) : (
+            <ul className="list">
+              {vales.map((v) => {
+                const status = codeStatus(v);
+                return (
+                  <li key={v.id} className="list-row">
+                    <div>
+                      <div className="name">{v.code}</div>
+                      <div className="meta">
+                        {KIND_LABEL[v.kind]} · {v.percent}% · {formatDate(v.valid_from)} a {formatDate(v.valid_to)}
+                      </div>
                     </div>
-                  </div>
-                  <span className={`tag${status.key === "active" ? " on" : " warn"}`}>{status.label}</span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                    <span className={`tag${status.key === "active" ? " on" : " warn"}`}>{status.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </div>
     </main>
   );

@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import TopNav from "@/app/_components/TopNav";
 import { codeStatus } from "@/app/codes/status";
 import { formatDate } from "@/lib/date";
 import { markUsedAtCounter } from "../actions";
@@ -36,12 +35,10 @@ export default async function VerificarValePage({
   const status = found ? codeStatus(found) : null;
 
   return (
-    <main className="narrow">
+    <main className="page-medium">
       <header className="top">
         <h1>Verificar vale</h1>
       </header>
-
-      <TopNav current="balcao" />
 
       <form method="get" className="card">
         <label>

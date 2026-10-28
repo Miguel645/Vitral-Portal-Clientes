@@ -38,7 +38,7 @@ export async function runBirthdayCheckNow() {
   const result = await runBirthdayCheck();
   const message =
     result.created === 0
-      ? "Não há códigos novos para criar hoje."
-      : `Foram criados ${result.created} ${result.created === 1 ? "código" : "códigos"} de aniversário.`;
+      ? "Não há vales novos para criar hoje."
+      : `Foram criados ${result.created} ${result.created === 1 ? "vale" : "vales"} de aniversário.`;
   redirect(`/settings/birthday?message=${encodeURIComponent(message)}`);
 }

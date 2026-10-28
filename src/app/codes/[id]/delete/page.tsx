@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import TopNav from "@/app/_components/TopNav";
 import { deleteCode } from "../../actions";
 
 export default async function DeleteCodePage({
@@ -21,12 +20,10 @@ export default async function DeleteCodePage({
   if (!code) notFound();
 
   return (
-    <main className="narrow">
+    <main className="page-narrow">
       <header className="top">
         <h1>Eliminar vale</h1>
       </header>
-
-      <TopNav current="codes" />
 
       <div className="card">
         <h2>Tem a certeza?</h2>

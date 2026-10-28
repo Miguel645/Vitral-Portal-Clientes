@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import TopBar from "./_components/TopBar";
 
 export const metadata: Metadata = {
   title: "Clientes Vitral",
@@ -20,7 +21,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Figtree:wght@400;500;600&display=swap"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <TopBar />
+        {children}
+      </body>
     </html>
   );
 }

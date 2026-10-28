@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import TopNav from "@/app/_components/TopNav";
 import { formatDate } from "@/lib/date";
 import { criarVariosVales } from "../../valeActions";
 
@@ -37,14 +36,12 @@ export default async function CriarVariosValesPage({
   }
 
   return (
-    <main className="narrow">
+    <main className="page-medium">
       <header className="top">
         <h1>Criar vários vales</h1>
       </header>
 
-      <TopNav current="promotions" />
-
-      <p className="meta" style={{ marginBottom: 16 }}>
+      <p className="meta">
         Promoção: <strong>{promotion.name}</strong> — {promotion.discount_percent}% de desconto, válido de{" "}
         {formatDate(promotion.reward_valid_from)} a {formatDate(promotion.reward_valid_to)}.
       </p>
@@ -52,10 +49,10 @@ export default async function CriarVariosValesPage({
       {since && createdCodes.length > 0 ? (
         <div className="card">
           <h2>{createdCodes.length} vales criados</h2>
-          <p className="meta" style={{ marginBottom: 12 }}>
+          <p className="meta" style={{ marginBottom: "var(--sp-12)" }}>
             Nenhum destes vales tem cliente associado. Pode descarregar a lista ou imprimir esta página.
           </p>
-          <ul className="list" style={{ marginBottom: 16 }}>
+          <ul className="list" style={{ marginBottom: "var(--sp-16)" }}>
             {createdCodes.map((c) => (
               <li key={c.code} className="list-row">
                 <div className="name">{c.code}</div>
@@ -88,7 +85,7 @@ export default async function CriarVariosValesPage({
         </form>
       )}
 
-      <p className="meta" style={{ textAlign: "center", marginTop: 16 }}>
+      <p className="meta" style={{ textAlign: "center" }}>
         <Link className="navlink" href={`/promotions/${id}/criar-vale`}>Criar só um vale, com cliente</Link>
       </p>
     </main>

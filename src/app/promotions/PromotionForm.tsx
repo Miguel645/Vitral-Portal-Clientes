@@ -50,7 +50,7 @@ export default function PromotionForm({
   }
 
   return (
-    <main className="narrow">
+    <main className="page-medium">
       {!promotion?.id ? (
         <div className="bar">
           <button type="button" className="btn" onClick={fillExample}>Começar com um exemplo (Natal)</button>

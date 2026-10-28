@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import TopNav from "@/app/_components/TopNav";
 import CampaignComposer from "../CampaignComposer";
 
 export default async function NewCampaignPage({
@@ -18,12 +17,10 @@ export default async function NewCampaignPage({
     .neq("phone", "");
 
   return (
-    <main className="narrow">
+    <main className="page-medium">
       <header className="top">
         <h1>Campanhas</h1>
       </header>
-
-      <TopNav current="campaigns" />
 
       <CampaignComposer
         initialMessage={message}
@@ -33,7 +30,7 @@ export default async function NewCampaignPage({
         testError={testError}
       />
 
-      <p className="meta" style={{ marginTop: 12, textAlign: "center" }}>
+      <p className="meta" style={{ textAlign: "center" }}>
         <Link className="navlink" href="/campaigns/log">Ver registo de SMS</Link>
       </p>
     </main>

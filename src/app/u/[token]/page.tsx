@@ -16,7 +16,7 @@ export default async function UnsubscribePage({
 
   if (!client) {
     return (
-      <main className="narrow">
+      <main className="page-narrow">
         <div className="card">
           <h2>Ligação inválida</h2>
           <p className="meta">Este link de cancelamento não é válido.</p>
@@ -30,12 +30,11 @@ export default async function UnsubscribePage({
   }
 
   return (
-    <main className="narrow">
+    <main className="page-narrow">
       <div className="card">
         <h2>Subscrição cancelada</h2>
         <p className="meta">
-          Já não vai receber mais mensagens promocionais da Vitral. Pode voltar a inscrever-se junto da loja em
-          qualquer momento.
+          Já não vai receber mensagens da Vitral. Pode voltar a inscrever-se junto da loja em qualquer momento.
         </p>
       </div>
     </main>

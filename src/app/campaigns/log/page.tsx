@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import TopNav from "@/app/_components/TopNav";
 import { formatDateTime } from "@/lib/date";
 
 type LogRow = {
@@ -28,16 +27,11 @@ export default async function CampaignsLogPage() {
   const rows = (data ?? []) as LogRow[];
 
   return (
-    <main>
+    <main className="page-wide">
       <header className="top">
         <h1>Registo de SMS</h1>
+        <Link className="btn primary" href="/campaigns/new">Nova campanha</Link>
       </header>
-
-      <TopNav current="campaigns" />
-
-      <p className="meta" style={{ marginBottom: 14 }}>
-        <Link className="navlink" href="/campaigns/new">Nova campanha</Link>
-      </p>
 
       {rows.length === 0 ? (
         <div className="empty">Ainda não foi enviada nenhuma mensagem.</div>

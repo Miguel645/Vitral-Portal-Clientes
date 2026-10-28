@@ -45,9 +45,9 @@ export default function ClientForm({
       </label>
       <label className="check">
         <input type="checkbox" name="consent" defaultChecked={client?.consent ?? false} />
-        <span>Este cliente aceitou receber promoções</span>
+        <span>Este cliente quer receber mensagens da Vitral (promoções, saldos e novidades)</span>
       </label>
-      <p className="hint" style={{ marginTop: -10, marginBottom: 18 }}>
+      <p className="hint" style={{ marginTop: "calc(var(--sp-8) * -1)", marginBottom: "var(--sp-24)" }}>
         Só os clientes marcados aqui recebem SMS e vales de aniversário.
       </p>
       {error ? <p className="err" role="alert">{error}</p> : null}

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import TopNav from "./_components/TopNav";
 
 type Client = {
   id: string;
@@ -32,15 +31,16 @@ export default async function ClientsPage({
     : all;
 
   return (
-    <main>
+    <main className="page-wide">
       <header className="top">
-        <h1>Clientes Vitral</h1>
-        <span className="count">
-          {all.length} {all.length === 1 ? "cliente" : "clientes"}
-        </span>
+        <div>
+          <h1>Clientes Vitral</h1>
+          <span className="count">
+            {all.length} {all.length === 1 ? "cliente" : "clientes"}
+          </span>
+        </div>
+        <Link className="btn primary" href="/clients/new">Adicionar cliente</Link>
       </header>
-
-      <TopNav current="clients" />
 
       {message ? <p className="notice">{message}</p> : null}
 
@@ -49,7 +49,6 @@ export default async function ClientsPage({
           <input type="search" name="q" defaultValue={q} placeholder="Procurar por nome, telefone ou email" aria-label="Procurar clientes" />
           <button className="btn" type="submit">Procurar</button>
         </form>
-        <Link className="btn primary" href="/clients/new">Adicionar cliente</Link>
       </div>
 
       {rows.length === 0 ? (
@@ -68,7 +67,7 @@ export default async function ClientsPage({
                   <div className="meta">{[c.phone, c.email].filter(Boolean).join("  ·  ")}</div>
                 </div>
                 <span className={`tag${c.consent ? " on" : ""}`}>
-                  {c.consent ? "Aceitou promoções" : "Não aceitou promoções"}
+                  {c.consent ? "Recebe mensagens" : "Não recebe mensagens"}
                 </span>
               </Link>
             </li>

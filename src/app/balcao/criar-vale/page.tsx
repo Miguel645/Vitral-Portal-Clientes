@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import TopNav from "@/app/_components/TopNav";
 import { formatDate } from "@/lib/date";
 import { promotionStatus } from "@/app/promotions/status";
 
@@ -23,21 +22,19 @@ export default async function BalcaoCriarValePage() {
   const running = ((data ?? []) as Promotion[]).filter((p) => promotionStatus(p).key === "running");
 
   return (
-    <main className="narrow">
+    <main className="page-medium">
       <header className="top">
         <h1>Criar vale</h1>
       </header>
 
-      <TopNav current="balcao" />
-
-      <p className="meta" style={{ marginBottom: 16 }}>Escolha a promoção do vale que quer criar.</p>
+      <p className="meta">Escolha a promoção do vale que quer criar.</p>
 
       {running.length === 0 ? (
         <div className="empty">
           Não há promoções a decorrer neste momento. <Link className="navlink" href="/promotions">Ver promoções</Link>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="cards-grid">
           {running.map((p) => (
             <Link key={p.id} href={`/promotions/${p.id}/criar-vale`} className="btn primary balcao-btn">
               {p.name} — {p.discount_percent}% até {formatDate(p.reward_valid_to)}

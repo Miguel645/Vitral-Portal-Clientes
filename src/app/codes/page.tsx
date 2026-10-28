@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import TopNav from "@/app/_components/TopNav";
 import { codeStatus, type StatusKey } from "./status";
 import { formatDate, lisbonToday } from "@/lib/date";
 import { markCodeUsed } from "./actions";
@@ -47,12 +46,10 @@ export default async function CodesPage({
     activeFilter === "all" ? rows : rows.filter((r) => r.status.key === (activeFilter as StatusKey));
 
   return (
-    <main>
+    <main className="page-wide">
       <header className="top">
         <h1>Vales</h1>
       </header>
-
-      <TopNav current="codes" />
 
       {message ? <p className="notice">{message}</p> : null}
 
@@ -85,7 +82,7 @@ export default async function CodesPage({
                     <button type="submit" className="btn">Marcar como usado</button>
                   </form>
                 ) : null}
-                <Link href={`/codes/${c.id}/delete`} className="btn danger">Eliminar</Link>
+                <Link href={`/codes/${c.id}/delete`} className="btn danger">Eliminar vale</Link>
               </div>
             </li>
           ))}

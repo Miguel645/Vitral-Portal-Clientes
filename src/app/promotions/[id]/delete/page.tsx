@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import TopNav from "@/app/_components/TopNav";
 import { deletePromotion } from "../../actions";
 
 export default async function DeletePromotionPage({
@@ -28,12 +27,10 @@ export default async function DeletePromotionPage({
   const codeCount = count ?? 0;
 
   return (
-    <main className="narrow">
+    <main className="page-narrow">
       <header className="top">
         <h1>Eliminar promoção</h1>
       </header>
-
-      <TopNav current="promotions" />
 
       <div className="card">
         <h2>Tem a certeza?</h2>

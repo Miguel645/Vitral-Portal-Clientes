@@ -8,7 +8,7 @@ export default async function LoginPage({
   const { error, message } = await searchParams;
 
   return (
-    <main className="narrow">
+    <main className="page-narrow">
       <h1 style={{ marginBottom: 18 }}>Clientes Vitral</h1>
       {message ? <p className="notice">{message}</p> : null}
       <form action={login} className="card">

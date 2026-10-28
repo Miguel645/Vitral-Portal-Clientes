@@ -54,9 +54,11 @@ export default function CampaignComposer({
         </p>
       ) : null}
 
-      <p className="meta">Destinatários: {recipientCount} clientes</p>
+      <p className="meta">
+        {recipientCount} {recipientCount === 1 ? "cliente vai receber" : "clientes vão receber"} esta mensagem.
+      </p>
 
-      <div className="card" style={{ marginBottom: 12 }}>
+      <div className="card" style={{ marginBottom: "var(--sp-16)" }}>
         <h2>Pré-visualização</h2>
         <p className="meta" style={{ whiteSpace: "pre-wrap" }}>
           {fullPreview}

@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import TopNav from "@/app/_components/TopNav";
 import CopyButton from "@/app/_components/CopyButton";
 import { formatDate } from "@/lib/date";
 import { criarVale } from "../../valeActions";
@@ -38,14 +37,12 @@ export default async function CriarValePage({
   }
 
   return (
-    <main className="narrow">
+    <main className="page-medium">
       <header className="top">
         <h1>Criar vale</h1>
       </header>
 
-      <TopNav current="promotions" />
-
-      <p className="meta" style={{ marginBottom: 16 }}>
+      <p className="meta">
         Promoção: <strong>{promotion.name}</strong> — {promotion.discount_percent}% de desconto, válido de{" "}
         {formatDate(promotion.reward_valid_from)} a {formatDate(promotion.reward_valid_to)}.
       </p>
@@ -64,7 +61,7 @@ export default async function CriarValePage({
         </div>
       ) : (
         <>
-          <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card">
             <h2>Cliente (opcional)</h2>
             <form method="get">
               <label>
@@ -103,7 +100,7 @@ export default async function CriarValePage({
             </div>
           </form>
 
-          <p className="meta" style={{ textAlign: "center", marginTop: 16 }}>
+          <p className="meta" style={{ textAlign: "center" }}>
             <Link className="navlink" href={`/promotions/${id}/criar-varios`}>Criar vários vales em vez de um</Link>
           </p>
         </>
