@@ -37,7 +37,8 @@ export default function NewValesForm({
   preselectedId?: string;
   today: string;
   defaultValidTo: string;
-  appUrl: string;
+  // Null when the unsubscribe link is switched off.
+  appUrl: string | null;
 }) {
   const [state, formAction, pending] = useActionState<CreateValesState, FormData>(createVales, {});
 

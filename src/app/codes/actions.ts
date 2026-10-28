@@ -6,6 +6,7 @@ import { generateUniqueCodes } from "@/lib/codes";
 import { formatDiscount } from "@/lib/discount";
 import { formatDate, INVALID_DATE, parseDisplayDate } from "@/lib/date";
 import { isSimulation, sendSms } from "@/lib/messaging";
+import { unsubscribeBaseUrl } from "@/lib/optOut";
 import { safeBack } from "./status";
 import { clientFirstName, composeValeMessage } from "@/lib/smsText";
 
@@ -108,7 +109,7 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
   let noConsent = 0;
   if (withSms) {
     const discountText = formatDiscount(discount);
-    const appUrl = process.env.APP_URL ?? "";
+    const appUrl = unsubscribeBaseUrl();
     for (const c of clients) {
       if (!c.consent) {
         noConsent++;

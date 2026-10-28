@@ -40,7 +40,8 @@ export default function CampaignEditor({
   recipients: { firstName: string; valid: boolean }[];
   // The first of those clients, for the preview (null when there's none yet).
   previewClient: { name: string; firstName: string; token: string } | null;
-  appUrl: string;
+  // Null when the unsubscribe link is switched off.
+  appUrl: string | null;
   testPhone: string;
   today: string;
   defaultValidTo: string;
