@@ -101,7 +101,7 @@ export async function saveClient(_prev: ClientFormState, formData: FormData): Pr
     const failed = `${message.slice(0, -1)}, mas a mensagem de boas-vindas não foi enviada: ${welcome.error}`;
     redirect(`/clients/${saved.id}?message=${encodeURIComponent(failed)}`);
   }
-  redirect(`/?message=${encodeURIComponent(welcome ? `${message} ${welcome.message}` : message)}`);
+  redirect(`/?saved=${saved.id}&message=${encodeURIComponent(welcome ? `${message} ${welcome.message}` : message)}`);
 }
 
 export async function deleteClient(formData: FormData) {

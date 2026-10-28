@@ -34,9 +34,11 @@ const FILTERS: { key: string; label: string; empty: string }[] = [
 export default async function CodesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; page?: string; message?: string }>;
+  searchParams: Promise<{ filter?: string; page?: string; message?: string; saved?: string }>;
 }) {
-  const { filter = "all", page: pageParam, message } = await searchParams;
+  const { filter = "all", page: pageParam, message, saved } = await searchParams;
+  // The codes of the vales just created, highlighted in the list.
+  const justSaved = new Set((saved ?? "").split(","));
   const page = pageFromParam(pageParam);
   const supabase = await createClient();
   const today = lisbonToday();
@@ -67,7 +69,7 @@ export default async function CodesPage({
         <Link href="/codes/new" className="btn primary">Criar vales</Link>
       </header>
 
-      <Notice message={message} />
+      <Notice message={message} clear={["saved"]} />
 
       <div className="bar filters">
         {FILTERS.map((f) => (
@@ -85,10 +87,11 @@ export default async function CodesPage({
       ) : (
         <ul className="list">
           {filtered.map((c) => (
-            <li key={c.id} className="list-row stack">
+            <li key={c.id} className={`list-row stack${justSaved.has(c.code) ? " just-saved" : ""}`}>
               <div>
                 <div className="name">{c.code}</div>
                 <div className="meta">
+                  {justSaved.has(c.code) ? <span className="just-saved-label">Acabado de criar · </span> : null}
                   {KIND_LABEL[c.kind] ?? c.kind}{c.note ? ` · ${c.note}` : ""} · {formatDiscount(c)} · {c.clients?.name ?? "Sem cliente"} · {formatDate(c.valid_from)} a{" "}
                   {formatDate(c.valid_to)}
                 </div>

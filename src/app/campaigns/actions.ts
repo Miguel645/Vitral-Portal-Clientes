@@ -120,7 +120,7 @@ export async function campaignAction(_prev: CampaignState, formData: FormData): 
     };
   }
 
-  if (intent === "save") redirect(`/campaigns/${id}?message=${encodeURIComponent("Campanha guardada.")}`);
+  if (intent === "save") redirect(`/campaigns?saved=${id}&message=${encodeURIComponent("Campanha guardada.")}`);
 
   const result = await sendToAll(supabase, id, parsed.row);
   if ("error" in result) return { error: result.error, intent, savedId: id };

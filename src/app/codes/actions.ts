@@ -183,7 +183,10 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
     }
   }
 
-  redirect(`/codes?message=${encodeURIComponent(parts.join(" "))}`);
+  // The new vales are the newest, so they're at the top of the list; up to a page of
+  // them is highlighted there.
+  const saved = rows.length <= 100 ? `saved=${rows.map((r) => r.code).join(",")}&` : "";
+  redirect(`/codes?${saved}message=${encodeURIComponent(parts.join(" "))}`);
 }
 
 // The client search box on "Criar vales": up to `limit` clients matching the text
