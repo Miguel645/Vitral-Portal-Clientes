@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { clientFirstName } from "@/lib/smsText";
 import CampaignComposer from "../CampaignComposer";
@@ -26,10 +25,6 @@ export default async function NewCampaignPage() {
         appUrl={process.env.APP_URL ?? ""}
         simulated={process.env.SMS_MODE !== "twilio"}
       />
-
-      <p className="meta" style={{ textAlign: "center" }}>
-        <Link className="navlink" href="/campaigns/log">Ver registo de SMS</Link>
-      </p>
     </main>
   );
 }

@@ -14,6 +14,8 @@ const LINKS = [
 ] as const;
 
 function isActive(pathname: string, section: string) {
+  // The SMS log is opened from Definições, so that's the section it belongs to.
+  if (pathname.startsWith("/campaigns/log")) return section === "/settings";
   if (section === "/") return pathname === "/" || pathname.startsWith("/clients/");
   return pathname === section || pathname.startsWith(`${section}/`);
 }

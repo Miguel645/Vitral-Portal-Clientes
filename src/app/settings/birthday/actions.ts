@@ -58,7 +58,7 @@ export async function runBirthdayCheckNow() {
     parts.push(`Foram criados ${result.created} ${result.created === 1 ? "vale" : "vales"} de aniversário.`);
     const simulated = process.env.SMS_MODE !== "twilio";
     parts.push(`${result.smsSent} SMS ${simulated ? "simulados (modo de teste, nada foi enviado de verdade)" : "enviados"}.`);
-    if (result.smsFailed > 0) parts.push(`${result.smsFailed} SMS falharam — veja o registo de SMS em Campanhas.`);
+    if (result.smsFailed > 0) parts.push(`${result.smsFailed} SMS falharam — veja o registo de SMS em Definições.`);
   }
   const message = parts.join(" ");
   redirect(`/settings/birthday?message=${encodeURIComponent(message)}`);

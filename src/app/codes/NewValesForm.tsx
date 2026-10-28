@@ -400,9 +400,6 @@ export default function NewValesForm({
               />
               {fieldError("sms_text")}
             </label>
-            <p className="meta">
-              {counter.length} carateres · {counter.parts} {counter.parts === 1 ? "parte" : "partes"} de SMS por cliente
-            </p>
             <SmsCostWarning text={preview} />
             <div className="preview">
               <p className="preview-title">Pré-visualização</p>
