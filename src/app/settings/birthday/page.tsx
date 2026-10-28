@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import Notice from "@/app/_components/Notice";
 import SubmitButton from "@/app/_components/SubmitButton";
@@ -34,6 +35,16 @@ export default async function BirthdaySettingsPage({
           <SubmitButton className="btn" pendingText="A criar…">Criar vales de aniversário agora</SubmitButton>
         </div>
       </form>
+
+      <div className="card">
+        <h2>Registo de SMS</h2>
+        <p className="meta" style={{ marginBottom: "var(--sp-16)" }}>
+          As últimas mensagens enviadas (campanhas, vales e testes), com o estado de cada uma.
+        </p>
+        <div className="actions">
+          <Link href="/campaigns/log" className="btn">Ver registo de SMS</Link>
+        </div>
+      </div>
     </main>
   );
 }

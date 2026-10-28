@@ -144,7 +144,7 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
     parts.push(
       `${sent} SMS ${simulated ? "simulados (modo de teste, nada foi enviado de verdade)" : "enviados"}.`
     );
-    if (failed > 0) parts.push(`${failed} SMS falharam — veja o registo de SMS em Campanhas.`);
+    if (failed > 0) parts.push(`${failed} SMS falharam — veja o registo de SMS em Definições.`);
     if (noConsent > 0) {
       parts.push(
         `${noConsent} ${noConsent === 1 ? "cliente não recebe" : "clientes não recebem"} mensagens, por isso não ${noConsent === 1 ? "recebeu" : "receberam"} SMS (o vale fica na ficha do cliente).`
