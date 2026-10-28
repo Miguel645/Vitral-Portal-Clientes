@@ -42,7 +42,11 @@ export default function NewValesForm({
   const [state, formAction, pending] = useActionState<CreateValesState, FormData>(createVales, {});
 
   const [discountType, setDiscountType] = useState<"percent" | "amount">("percent");
-  const [value, setValue] = useState("");
+  // Each kind keeps its own value: 10% is filled in, the euro amount starts empty.
+  const [percentValue, setPercentValue] = useState("10");
+  const [amountValue, setAmountValue] = useState("");
+  const value = discountType === "percent" ? percentValue : amountValue;
+  const setValue = discountType === "percent" ? setPercentValue : setAmountValue;
   // What's typed in the two date boxes (dd/mm/aaaa).
   const [validFrom, setValidFrom] = useState(formatDate(today));
   const [validTo, setValidTo] = useState(formatDate(defaultValidTo));
@@ -127,7 +131,7 @@ export default function NewValesForm({
   const discountText =
     Number.isFinite(numericValue) && numericValue > 0
       ? formatDiscount(discountType === "percent" ? { percent: numericValue, amount_eur: null } : { percent: null, amount_eur: numericValue })
-      : discountType === "percent" ? "10%" : "5,00 €";
+      : "[desconto]";
 
   const validFromIso = parseDisplayDate(validFrom);
   const validToIso = parseDisplayDate(validTo);
@@ -144,7 +148,7 @@ export default function NewValesForm({
       firstName: previewName,
       codes: PREVIEW_CODES.slice(0, perClientNum),
       discount: discountText,
-        validTo: validToIso ? formatDate(validToIso) : "[validade]",
+      validTo: validToIso ? formatDate(validToIso) : "[validade]",
     },
     appUrl,
     PREVIEW_TOKEN
