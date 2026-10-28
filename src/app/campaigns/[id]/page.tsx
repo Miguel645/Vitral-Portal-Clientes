@@ -7,6 +7,7 @@ import { formatDiscount } from "@/lib/discount";
 import { isSimulation } from "@/lib/messaging/mode";
 import CampaignEditor from "../CampaignEditor";
 import { loadEditorData } from "../editorData";
+import { appUrlError } from "@/lib/optOut";
 import { pendingRecipients, RESUME_AFTER_MS } from "../recipients";
 import { resumeCampaign } from "../actions";
 import SubmitButton from "@/app/_components/SubmitButton";
@@ -48,6 +49,7 @@ export default async function CampaignPage({
       <main className="page-medium">
         {header}
         <Notice message={message} />
+        {appUrlError() ? <p className="err" role="alert">{appUrlError()}</p> : null}
         <CampaignEditor {...editor} campaign={campaign} />
       </main>
     );

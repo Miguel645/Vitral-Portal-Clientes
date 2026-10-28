@@ -52,6 +52,7 @@ export async function saveBirthdaySettings(_prev: SettingsState, formData: FormD
 
 export async function runBirthdayCheckNow() {
   const result = await runBirthdayCheck();
+  if (result.error) redirect(`/settings/birthday?message=${encodeURIComponent(result.error)}`);
   const parts: string[] = [];
   if (result.created === 0) {
     parts.push("Não há vales novos para criar hoje.");

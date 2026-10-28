@@ -5,8 +5,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { isSimulation, sendSms, type SendResult } from "@/lib/messaging";
 import { normalizePhone } from "@/lib/phone";
-import { unsubscribeBaseUrl } from "@/lib/optOut";
-import { generateUniqueCodes } from "@/lib/codes";
+import { appUrlError, unsubscribeBaseUrl } from "@/lib/optOut";
+import { generateUniqueCodes, randomString } from "@/lib/codes";
 import { fetchAll } from "@/lib/fetchAll";
 import { pendingRecipients, RESUME_AFTER_MS, type Recipient } from "./recipients";
 import { INVALID_DATE, parseDisplayDate } from "@/lib/date";
@@ -143,8 +143,11 @@ async function sendTest(formData: FormData): Promise<CampaignState> {
     };
   }
 
+  const urlError = appUrlError();
+  if (urlError) return { error: urlError, intent };
+
   // Not a real client's token: the link in a test SMS opens "Link inválido".
-  const testToken = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+  const testToken = randomString("abcdefghijklmnopqrstuvwxyz0123456789", 8);
   const text = composeCampaignMessage(smsText, { firstName: "Teste", vale: TEST_VALE }, unsubscribeBaseUrl(), testToken);
 
   const result = await sendSms(phone, text, { isTest: true, campaignId: id || undefined });
@@ -172,6 +175,8 @@ async function sendToAll(
   row: CampaignRow
 ): Promise<{ message: string } | { error: string }> {
   const startedAt = Date.now();
+  const urlError = appUrlError();
+  if (urlError) return { error: urlError };
   // Only clients who want to receive messages, never anyone else (1,000 at a time).
   let recipients: Recipient[];
   try {
@@ -206,6 +211,8 @@ export async function resumeCampaign(formData: FormData) {
   const back = (message: string) => redirect(`/campaigns/${id}?message=${encodeURIComponent(message)}`);
   if (!/^[0-9a-f-]{36}$/i.test(id)) redirect("/campaigns");
   const startedAt = Date.now();
+  const urlError = appUrlError();
+  if (urlError) back(urlError);
 
   const supabase = await createClient();
   const { data: campaign } = await supabase

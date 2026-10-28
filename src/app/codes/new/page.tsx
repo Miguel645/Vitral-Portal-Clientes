@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { addDays, lisbonToday } from "@/lib/date";
-import { unsubscribeBaseUrl } from "@/lib/optOut";
+import { appUrlError, previewBaseUrl } from "@/lib/optOut";
 import NewValesForm from "../NewValesForm";
 
 // Creating vales for every client and sending one SMS each can take a while.
@@ -31,6 +31,8 @@ export default async function NewValesPage({
         <h1>Criar vales</h1>
       </header>
 
+      {appUrlError() ? <p className="err" role="alert">{appUrlError()}</p> : null}
+
       <NewValesForm
         totalClients={total ?? 0}
         consentingClients={consenting ?? 0}
@@ -38,7 +40,7 @@ export default async function NewValesPage({
         preselected={preselected ?? undefined}
         today={today}
         defaultValidTo={addDays(today, 30)}
-        appUrl={unsubscribeBaseUrl()}
+        appUrl={previewBaseUrl()}
       />
     </main>
   );

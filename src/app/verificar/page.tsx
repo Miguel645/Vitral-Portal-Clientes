@@ -6,6 +6,14 @@ import SubmitButton from "@/app/_components/SubmitButton";
 import CodeInput from "./CodeInput";
 import { markUsedAtCounter, undoUsedAtCounter } from "./actions";
 
+// After "Marcar como usado" / "Desfazer" changed nothing or failed. The vale's real state shows below it.
+const ERRORS: Record<string, string> = {
+  mark_not_valid: "O vale não foi marcado como usado: já não é válido (pode ter sido usado agora noutro sítio). Veja o estado abaixo.",
+  mark_failed: "Não foi possível marcar o vale como usado. Verifique a ligação à internet e tente novamente.",
+  undo_not_changed: "Nada mudou: o vale não estava marcado como usado. Veja o estado abaixo.",
+  undo_failed: "Não foi possível desfazer. Verifique a ligação à internet e tente novamente.",
+};
+
 type Found = {
   id: string;
   code: string;
@@ -21,9 +29,10 @@ type Found = {
 export default async function VerificarValePage({
   searchParams,
 }: {
-  searchParams: Promise<{ code?: string; done?: string; undone?: string }>;
+  searchParams: Promise<{ code?: string; done?: string; undone?: string; error?: string }>;
 }) {
-  const { code, done, undone } = await searchParams;
+  const { code, done, undone, error } = await searchParams;
+  const errorText = error && Object.hasOwn(ERRORS, error) ? ERRORS[error] : undefined;
   // Ignore spaces and dashes that sometimes get typed or pasted in.
   const term = (code ?? "").replace(/[\s-]/g, "").toUpperCase();
   // "Verificar" pressed with the box empty.
@@ -64,6 +73,7 @@ export default async function VerificarValePage({
       </form>
 
       <div className="stack" aria-live="polite">
+        {errorText ? <p className="err" role="alert">{errorText}</p> : null}
         {term && !found ? (
           <div className="result-box bad">Não válido: vale não encontrado. Verifique o código e tente novamente.</div>
         ) : null}

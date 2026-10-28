@@ -2,29 +2,32 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDiscount } from "@/lib/discount";
+import { formatDate } from "@/lib/date";
 import SubmitButton from "@/app/_components/SubmitButton";
 import { markCodeUsed } from "../../actions";
-import { safeBack } from "../../status";
+import { codeStatus, safeBack } from "../../status";
 
 export default async function UseCodePage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ back?: string }>;
+  searchParams: Promise<{ back?: string; error?: string }>;
 }) {
   const { id } = await params;
-  const back = safeBack((await searchParams).back);
+  const { back: backParam, error } = await searchParams;
+  const back = safeBack(backParam);
   const supabase = await createClient();
 
   const { data: code } = await supabase
     .from("discount_codes")
-    .select("id, code, percent, amount_eur, used_at, clients(name)")
+    .select("id, code, percent, amount_eur, valid_from, valid_to, used_at, clients(name)")
     .eq("id", id)
     .maybeSingle();
 
   if (!code) notFound();
   const clientName = (code.clients as unknown as { name: string } | null)?.name;
+  const status = codeStatus(code);
 
   return (
     <main className="page-narrow">
@@ -41,9 +44,28 @@ export default async function UseCodePage({
               <Link href={back} className="btn primary">Voltar</Link>
             </div>
           </>
+        ) : status.key !== "active" ? (
+          <>
+            <h2>Este vale não está válido</h2>
+            <p>
+              O vale <strong>{code.code}</strong>{" "}
+              {status.key === "expired"
+                ? `expirou a ${formatDate(code.valid_to)}`
+                : `só é válido a partir de ${formatDate(code.valid_from)}`}
+              , por isso não pode ser marcado como usado.
+            </p>
+            <div className="confirm-actions">
+              <Link href={back} className="btn primary">Voltar</Link>
+            </div>
+          </>
         ) : (
           <>
             <h2>Tem a certeza?</h2>
+            {error === "failed" ? (
+              <p className="err" role="alert">
+                Não foi possível marcar o vale como usado. Verifique a ligação à internet e tente novamente.
+              </p>
+            ) : null}
             <p>
               Marcar o vale <strong>{code.code}</strong> ({formatDiscount(code)}
               {clientName ? `, ${clientName}` : ""}) como usado? Depois deixa de poder ser usado.

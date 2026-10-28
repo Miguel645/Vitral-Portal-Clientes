@@ -5,13 +5,18 @@ import { lisbonToday, addDays, isLeapYear, formatDate } from "./date";
 import { formatDiscount } from "./discount";
 import { sendSms } from "./messaging";
 import { clientFirstName, composeValeMessage } from "./smsText";
-import { unsubscribeBaseUrl } from "./optOut";
+import { appUrlError, unsubscribeBaseUrl } from "./optOut";
 
 // No accents outside the cheap GSM-7 set (é is fine), so it stays a 160-character SMS.
 export const BIRTHDAY_SMS_TEMPLATE =
   "Parabéns {{name}}! A Vitral oferece-lhe {{desconto}} de desconto: {{codigo}}. Use-o até {{validade}}.";
 
-export async function runBirthdayCheck(): Promise<{ created: number; smsSent: number; smsFailed: number }> {
+export async function runBirthdayCheck(): Promise<{ created: number; smsSent: number; smsFailed: number; error?: string }> {
+  // Stop before creating anything: each birthday vale gets its one SMS right away,
+  // and it would carry a broken unsubscribe link.
+  const urlError = appUrlError();
+  if (urlError) return { created: 0, smsSent: 0, smsFailed: 0, error: urlError };
+
   const supabase = createAdminClient();
   const today = lisbonToday();
   const [todayY, todayM, todayD] = today.split("-").map(Number);
