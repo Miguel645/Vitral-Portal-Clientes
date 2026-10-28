@@ -3,6 +3,10 @@
 const MESSAGES: Record<number, string> = {
   21608:
     "Conta Twilio de teste: este número ainda não foi verificado. Adicione-o no Twilio (Verified Caller IDs) ou passe a conta a paga.",
+  572006:
+    "Conta Twilio de teste: só deixa enviar as mensagens-modelo do Twilio, não texto próprio. Passe a conta Twilio a paga para enviar as suas mensagens.",
+  572005:
+    "Conta Twilio de teste: a verificação deste número não ficou concluída. Verifique o número outra vez no Twilio (Verified Caller IDs).",
   21211: "Número de telemóvel inválido. Verifique o número na ficha do cliente.",
   21614: "Este número não é de telemóvel, por isso não recebe SMS.",
   21408: "O Twilio ainda não pode enviar SMS para este país. Ative o país no Twilio (Messaging > Geo permissions).",
