@@ -284,3 +284,7 @@ alter table public.sms_log add column if not exists is_test boolean not null def
 
 create index if not exists sms_log_created_at_idx on public.sms_log (created_at desc);
 create index if not exists sms_log_campaign_id_idx on public.sms_log (campaign_id);
+
+-- Faster vale lists: a client's vales and the newest vales first (migration 20261028_discount_codes_indexes.sql).
+create index if not exists discount_codes_client_id_idx on public.discount_codes (client_id);
+create index if not exists discount_codes_created_at_idx on public.discount_codes (created_at desc);

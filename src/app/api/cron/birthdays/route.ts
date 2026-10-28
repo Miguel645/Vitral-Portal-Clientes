@@ -15,5 +15,6 @@ export async function GET(request: NextRequest) {
   }
 
   const result = await runBirthdayCheck();
-  return NextResponse.json(result);
+  // An error shows as a failed run in Vercel > Cron Jobs.
+  return NextResponse.json(result, { status: result.error ? 500 : 200 });
 }

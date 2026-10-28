@@ -8,8 +8,9 @@ import { clientSearchFilter } from "@/lib/clientSearch";
 import { formatDiscount } from "@/lib/discount";
 import { formatDate, INVALID_DATE, parseDisplayDate } from "@/lib/date";
 import { isSimulation, sendSms } from "@/lib/messaging";
-import { unsubscribeBaseUrl } from "@/lib/optOut";
+import { appUrlError, unsubscribeBaseUrl } from "@/lib/optOut";
 import { safeBack } from "./status";
+import { markValeUsed } from "./markUsed";
 import { clientFirstName, composeValeMessage } from "@/lib/smsText";
 
 // `field` names the form field the error is about, so it can be marked and read out with it.
@@ -64,6 +65,9 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
   if (withSms && !smsText.includes("{{codigo}}")) {
     return { error: "A mensagem tem de incluir {{codigo}}, para o cliente receber o código do vale.", field: "sms_text" };
   }
+  // Before creating anything: the SMS would carry a broken unsubscribe link.
+  const urlError = withSms ? appUrlError() : null;
+  if (urlError) return { error: urlError };
 
   const supabase = await createClient();
   type Recipient = { id: string; name: string; phone: string; consent: boolean; short_token: string };
@@ -202,9 +206,10 @@ export async function searchClients(
 export async function markCodeUsed(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const back = safeBack(String(formData.get("back") ?? ""));
-  if (id) {
-    const supabase = await createClient();
-    await supabase.from("discount_codes").update({ used_at: new Date().toISOString() }).eq("id", id).is("used_at", null);
+  const result = id ? await markValeUsed(await createClient(), id) : "not_valid";
+  if (result !== "ok") {
+    // Back to the confirmation page, which shows why (or asks to try again).
+    redirect(`/codes/${id}/use?back=${encodeURIComponent(back)}&error=${result}`);
   }
   redirect(`${back}?message=${encodeURIComponent("Vale marcado como usado.")}`);
 }

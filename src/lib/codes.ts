@@ -2,12 +2,21 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 const CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-export function randomCode(length = 8) {
+// `length` characters from `charset`, from the secure random generator (Math.random
+// is predictable). Bytes that would make some characters more likely are thrown away.
+export function randomString(charset: string, length: number): string {
+  const limit = 256 - (256 % charset.length);
   let out = "";
-  for (let i = 0; i < length; i++) {
-    out += CHARSET[Math.floor(Math.random() * CHARSET.length)];
+  while (out.length < length) {
+    for (const b of crypto.getRandomValues(new Uint8Array(length))) {
+      if (b < limit && out.length < length) out += charset[b % charset.length];
+    }
   }
   return out;
+}
+
+export function randomCode(length = 8) {
+  return randomString(CHARSET, length);
 }
 
 export async function generateUniqueCode(supabase: SupabaseClient, attempts = 5): Promise<string> {
