@@ -37,12 +37,12 @@ export default async function BirthdaySettingsPage({
       </form>
 
       <div className="card">
-        <h2>Registo de SMS</h2>
+        <h2>Histórico de envios</h2>
         <p className="meta" style={{ marginBottom: "var(--sp-16)" }}>
           As últimas mensagens enviadas (campanhas, vales e testes), com o estado de cada uma.
         </p>
         <div className="actions">
-          <Link href="/campaigns/log" className="btn">Ver registo de SMS</Link>
+          <Link href="/campaigns/log" className="btn">Ver histórico de envios</Link>
         </div>
       </div>
     </main>

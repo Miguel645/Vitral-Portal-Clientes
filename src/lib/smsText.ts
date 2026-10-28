@@ -18,6 +18,25 @@ export function nonGsm7Chars(text: string): string[] {
   return [...new Set([...text].filter((ch) => !GSM7_SET.has(ch)))];
 }
 
+// Typographic characters that have a plain equivalent in the cheap set.
+const PLAIN: Record<string, string> = {
+  "“": '"', "”": '"', "„": '"', "‘": "'", "’": "'", "–": "-", "—": "-", "…": "...", "\u00a0": " ", "º": "o", "ª": "a",
+};
+
+// "Remover acentos": swaps every character that forces the expensive encoding for
+// its plain letter (á -> a, ç -> c, õ -> o). Accents that are already cheap (é, è, à, Ç)
+// stay as they are. Anything with no plain equivalent (like emoji) is left alone.
+export function removeAccents(text: string): string {
+  return [...text]
+    .map((ch) => {
+      if (GSM7_SET.has(ch)) return ch;
+      if (PLAIN[ch]) return PLAIN[ch];
+      const plain = ch.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return plain && [...plain].every((c) => GSM7_SET.has(c)) ? plain : ch;
+    })
+    .join("");
+}
+
 // `length` is what the operator counts: in GSM-7, extension characters like € take
 // two places; in UCS-2, emoji take two. One SMS holds 160 (GSM-7) or 70 (UCS-2);
 // longer messages are split into parts of 153 or 67, because each part carries
@@ -61,8 +80,15 @@ export function unsubscribeFooter(appUrl: string, token: string): string {
   return `\nPara deixar de receber mensagens: ${base}/u/${token}`;
 }
 
-export function composeMessage(template: string, firstName: string, appUrl: string, token: string): string {
-  return renderTemplate(template, firstName) + unsubscribeFooter(appUrl, token);
+// Campaign SMS: {nome} is the client's first name, {vale} the code of the vale
+// the campaign creates for them.
+export function composeCampaignMessage(
+  template: string,
+  v: { firstName: string; vale: string },
+  appUrl: string,
+  token: string
+): string {
+  return template.split("{nome}").join(v.firstName).split("{vale}").join(v.vale) + unsubscribeFooter(appUrl, token);
 }
 
 // Vale SMS get the same opt-out line as campaigns.

@@ -1,31 +1,23 @@
-import { createClient } from "@/lib/supabase/server";
-import { isSimulation } from "@/lib/messaging/mode";
-import { clientFirstName } from "@/lib/smsText";
-import CampaignComposer from "../CampaignComposer";
+import Link from "next/link";
+import CampaignEditor from "../CampaignEditor";
+import { loadEditorData } from "../editorData";
 
-// "Enviar a todos" sends one SMS per client, which can take a while.
+// "Enviar campanha" sends one SMS per client in small groups, which can take a while.
 export const maxDuration = 60;
 
 export default async function NewCampaignPage() {
-  const supabase = await createClient();
-
-  const { data } = await supabase
-    .from("clients")
-    .select("name")
-    .eq("consent", true)
-    .neq("phone", "");
+  const editor = await loadEditorData();
 
   return (
     <main className="page-medium">
       <header className="top">
-        <h1>Campanhas</h1>
+        <div>
+          <Link className="navlink" href="/campaigns">Voltar às campanhas</Link>
+          <h1>Nova campanha</h1>
+        </div>
       </header>
 
-      <CampaignComposer
-        recipientNames={(data ?? []).map((c) => clientFirstName(c.name))}
-        appUrl={process.env.APP_URL ?? ""}
-        simulated={isSimulation()}
-      />
+      <CampaignEditor {...editor} />
     </main>
   );
 }
