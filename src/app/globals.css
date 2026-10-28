@@ -26,7 +26,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 400 1rem/1.6 Figtree, system-ui, sans-serif;
+  font: 400 1rem/1.6 var(--font-body), system-ui, sans-serif;
 }
 
 /* Page containers: three widths, centred, consistent side padding */
@@ -54,8 +54,8 @@ header.top {
   gap: var(--sp-16);
   flex-wrap: wrap;
 }
-h1 { font: 600 2.1rem/1.1 "Cormorant Garamond", Georgia, serif; margin: 0; letter-spacing: 0.01em; }
-h2 { font: 600 1.5rem/1.2 "Cormorant Garamond", Georgia, serif; margin: 0 0 var(--sp-16); }
+h1 { font: 600 2.1rem/1.1 var(--font-heading), Georgia, serif; margin: 0; letter-spacing: 0.01em; }
+h2 { font: 600 1.5rem/1.2 var(--font-heading), Georgia, serif; margin: 0 0 var(--sp-16); }
 .count { color: var(--muted); font-size: 0.95rem; }
 input, button, textarea, select { font: inherit; color: inherit; }
 input[type="search"], input[type="text"], input[type="tel"], input[type="email"], input[type="password"], input[type="number"], select, textarea {
@@ -168,7 +168,7 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
   font-weight: 600;
   text-align: center;
 }
-.topbar-brand { font: 600 1.3rem/1 "Cormorant Garamond", Georgia, serif; color: var(--ink); text-decoration: none; flex: 0 0 auto; }
+.topbar-brand { font: 600 1.3rem/1 var(--font-heading), Georgia, serif; color: var(--ink); text-decoration: none; flex: 0 0 auto; }
 .topbar-nav { display: flex; align-items: center; gap: var(--sp-16); flex: 1; }
 .topbar-link { color: var(--ink); text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: var(--sp-8) 0; border-bottom: 2px solid transparent; }
 .topbar-link.active { font-weight: 700; border-bottom-color: var(--accent); color: var(--accent); }

@@ -1,7 +1,7 @@
 import { createAdminClient } from "./supabase/admin";
 import { generateUniqueCode } from "./codes";
 import { fetchAll } from "./fetchAll";
-import { lisbonToday, addDays, isLeapYear, formatDate } from "./date";
+import { lisbonToday, addDays, formatDate, isBirthdayOn } from "./date";
 import { formatDiscount } from "./discount";
 import { sendSms } from "./messaging";
 import { clientFirstName, composeValeMessage } from "./smsText";
@@ -19,7 +19,7 @@ export async function runBirthdayCheck(): Promise<{ created: number; smsSent: nu
 
   const supabase = createAdminClient();
   const today = lisbonToday();
-  const [todayY, todayM, todayD] = today.split("-").map(Number);
+  const todayY = Number(today.slice(0, 4));
   const appUrl = unsubscribeBaseUrl();
 
   const { data: settings } = await supabase
@@ -46,11 +46,7 @@ export async function runBirthdayCheck(): Promise<{ created: number; smsSent: nu
   let smsFailed = 0;
 
   for (const client of clients) {
-    if (!client.birth_date) continue;
-    const [, bm, bd] = client.birth_date.split("-").map(Number);
-
-    const matchDay = bm === 2 && bd === 29 && !isLeapYear(todayY) ? 28 : bd;
-    if (bm !== todayM || matchDay !== todayD) continue;
+    if (!client.birth_date || !isBirthdayOn(client.birth_date, today)) continue;
 
     const { data: existing } = await supabase
       .from("discount_codes")
