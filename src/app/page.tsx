@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatPhone } from "@/lib/phone";
 import { clientSearchFilter } from "@/lib/clientSearch";
 import Notice from "@/app/_components/Notice";
+import JustSavedLabel from "@/app/_components/JustSaved";
 import Pager, { PAGE_SIZE, pageFromParam } from "@/app/_components/Pager";
 import ClientSearch from "@/app/_components/ClientSearch";
 
@@ -71,7 +72,7 @@ export default async function ClientsPage({
         <Link className="btn primary" href="/clients/new">Adicionar cliente</Link>
       </header>
 
-      <Notice message={message} clear={["saved"]} />
+      <Notice message={message} clear={["saved"]} autoHide />
 
       <div className="bar">
         <ClientSearch q={q} />
@@ -91,7 +92,7 @@ export default async function ClientsPage({
                 <div>
                   <div className="name">{c.name}</div>
                   <div className="meta">
-                    {c.id === pinned?.id ? <span className="just-saved-label">Acabado de guardar · </span> : null}
+                    {c.id === pinned?.id ? <JustSavedLabel text="Acabado de guardar" /> : null}
                     {[formatPhone(c.phone), c.email].filter(Boolean).join("  ·  ")}
                   </div>
                 </div>

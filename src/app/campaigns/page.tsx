@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import Notice from "@/app/_components/Notice";
+import JustSavedLabel from "@/app/_components/JustSaved";
 import { formatDateTime, lisbonToday } from "@/lib/date";
 import { formatDiscount } from "@/lib/discount";
 
@@ -41,7 +42,7 @@ export default async function CampaignsPage({
         <Link href="/campaigns/new" className="btn primary">Nova campanha</Link>
       </header>
 
-      <Notice message={message} clear={["saved"]} />
+      <Notice message={message} clear={["saved"]} autoHide />
 
       {rows.length === 0 ? (
         <div className="empty">Ainda não há campanhas. Carregue em “Nova campanha” para começar.</div>
@@ -55,7 +56,7 @@ export default async function CampaignsPage({
                   <div>
                     <div className="name">{c.name}</div>
                     <div className="meta">
-                      {c.id === saved ? <span className="just-saved-label">Acabada de guardar · </span> : null}
+                      {c.id === saved ? <JustSavedLabel text="Acabada de guardar" /> : null}
                       {c.status === "sent" && c.sent_at
                         ? `Enviada em ${formatDateTime(c.sent_at)}`
                         : `Criada em ${formatDateTime(c.created_at)}`}
