@@ -4,14 +4,12 @@ import { formatDate } from "@/lib/date";
 import { formatDiscount } from "@/lib/discount";
 import SubmitButton from "@/app/_components/SubmitButton";
 import CodeInput from "./CodeInput";
-import { markUsedAtCounter, undoUsedAtCounter } from "./actions";
+import { markUsedAtCounter } from "./actions";
 
-// After "Marcar como usado" / "Desfazer" changed nothing or failed. The vale's real state shows below it.
+// After "Marcar como usado" changed nothing or failed. The vale's real state shows below it.
 const ERRORS: Record<string, string> = {
   mark_not_valid: "O vale não foi marcado como usado: já não é válido (pode ter sido usado agora noutro sítio). Veja o estado abaixo.",
   mark_failed: "Não foi possível marcar o vale como usado. Verifique a ligação à internet e tente novamente.",
-  undo_not_changed: "Nada mudou: o vale não estava marcado como usado. Veja o estado abaixo.",
-  undo_failed: "Não foi possível desfazer. Verifique a ligação à internet e tente novamente.",
 };
 
 type Found = {
@@ -29,9 +27,9 @@ type Found = {
 export default async function VerificarValePage({
   searchParams,
 }: {
-  searchParams: Promise<{ code?: string; done?: string; undone?: string; error?: string }>;
+  searchParams: Promise<{ code?: string; done?: string; error?: string }>;
 }) {
-  const { code, done, undone, error } = await searchParams;
+  const { code, done, error } = await searchParams;
   const errorText = error && Object.hasOwn(ERRORS, error) ? ERRORS[error] : undefined;
   // Ignore spaces and dashes that sometimes get typed or pasted in.
   const term = (code ?? "").replace(/[\s-]/g, "").toUpperCase();
@@ -50,9 +48,6 @@ export default async function VerificarValePage({
   }
 
   const status = found ? codeStatus(found) : null;
-  const details = found
-    ? `${formatDiscount(found)} de desconto${found.note ? ` (${found.note})` : ""}.${found.clients?.name ? ` Cliente: ${found.clients.name}.` : ""}`
-    : "";
 
   return (
     <main className="page-medium">
@@ -74,25 +69,18 @@ export default async function VerificarValePage({
 
       <div className="stack" aria-live="polite">
         {errorText ? <p className="err" role="alert">{errorText}</p> : null}
+        {/* A used vale is deleted, so after marking it there's nothing left to find. */}
         {term && !found ? (
-          <div className="result-box bad">Não válido: vale não encontrado. Verifique o código e tente novamente.</div>
+          done ? (
+            <div className="result-box ok">Vale {term} marcado como usado.</div>
+          ) : (
+            <div className="result-box bad">Vale não válido ou expirado.</div>
+          )
         ) : null}
 
         {found && status ? (
-          status.key === "used" && done ? (
+          status.key === "active" ? (
             <>
-              <div className="result-box ok">Vale marcado como usado. {details}</div>
-              <form action={undoUsedAtCounter}>
-                <input type="hidden" name="id" value={found.id} />
-                <input type="hidden" name="code" value={found.code} />
-                <div className="actions" style={{ justifyContent: "center" }}>
-                  <SubmitButton className="btn" pendingText="A desfazer…">Desfazer</SubmitButton>
-                </div>
-              </form>
-            </>
-          ) : status.key === "active" ? (
-            <>
-              {undone ? <p className="notice">O vale voltou a ficar ativo.</p> : null}
               <div className="result-box ok">
                 Válido: {formatDiscount(found)} de desconto{found.note ? ` (${found.note})` : ""}, até {formatDate(found.valid_to)}.
                 {found.clients?.name ? ` Cliente: ${found.clients.name}.` : ""}

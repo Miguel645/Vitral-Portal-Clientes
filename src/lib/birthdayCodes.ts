@@ -48,13 +48,13 @@ export async function runBirthdayCheck(): Promise<{ created: number; smsSent: nu
   for (const client of clients) {
     if (!client.birth_date || !isBirthdayOn(client.birth_date, today)) continue;
 
+    // Used vales are deleted, so this table (filled by a database trigger) remembers
+    // which clients already got their birthday vale each year.
     const { data: existing } = await supabase
-      .from("discount_codes")
-      .select("id")
+      .from("birthday_vales_given")
+      .select("client_id")
       .eq("client_id", client.id)
-      .eq("kind", "birthday")
-      .gte("valid_from", `${todayY}-01-01`)
-      .lte("valid_from", `${todayY}-12-31`)
+      .eq("year", todayY)
       .limit(1);
 
     if (existing && existing.length > 0) continue;
@@ -71,8 +71,8 @@ export async function runBirthdayCheck(): Promise<{ created: number; smsSent: nu
     });
 
     // The SMS only goes out for a vale this run actually created. The database allows
-    // one birthday vale per client per year, so a second run (or the cron and the
-    // "run now" button at once) can't create another one and never sends twice.
+    // one birthday vale per client per year, so a second run can't create another
+    // one and never sends twice.
     if (error) continue;
     created++;
 

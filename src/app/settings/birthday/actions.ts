@@ -2,8 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { runBirthdayCheck } from "@/lib/birthdayCodes";
-import { isSimulation } from "@/lib/messaging";
 
 function parse(formData: FormData) {
   const active = formData.get("active") === "on";
@@ -48,20 +46,4 @@ export async function saveBirthdaySettings(_prev: SettingsState, formData: FormD
     return { error: "Não foi possível guardar. Verifique os dados e tente novamente.", values };
   }
   redirect(`/settings?message=${encodeURIComponent("Definições guardadas.")}`);
-}
-
-export async function runBirthdayCheckNow() {
-  const result = await runBirthdayCheck();
-  if (result.error) redirect(`/settings?message=${encodeURIComponent(result.error)}`);
-  const parts: string[] = [];
-  if (result.created === 0) {
-    parts.push("Não há vales novos para criar hoje.");
-  } else {
-    parts.push(`Foram criados ${result.created} ${result.created === 1 ? "vale" : "vales"} de aniversário.`);
-    const simulated = isSimulation();
-    parts.push(`${result.smsSent} SMS ${simulated ? "simulados (modo de teste, nada foi enviado de verdade)" : "enviados"}.`);
-    if (result.smsFailed > 0) parts.push(`${result.smsFailed} SMS falharam — veja o Histórico de envios, em Campanhas.`);
-  }
-  const message = parts.join(" ");
-  redirect(`/settings?message=${encodeURIComponent(message)}`);
 }

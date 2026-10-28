@@ -140,7 +140,7 @@ export default function WelcomeForm({
         <span>Incluir um vale</span>
       </label>
       <p className="hint" id="welcome-with_vale-hint" style={{ marginTop: "calc(var(--sp-8) * -1)", marginBottom: "var(--sp-24)" }}>
-        Cada novo cliente recebe um vale; {"{vale}"} passa a ser o código dele.
+        Cada novo cliente recebe um vale
       </p>
 
       {withVale ? (

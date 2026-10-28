@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDiscount } from "@/lib/discount";
@@ -25,7 +24,23 @@ export default async function UseCodePage({
     .eq("id", id)
     .maybeSingle();
 
-  if (!code) notFound();
+  // Used vales are deleted, so a missing one was used (or deleted) in the meantime.
+  if (!code) {
+    return (
+      <main className="page-narrow">
+        <header className="top">
+          <h1>Marcar como usado</h1>
+        </header>
+        <div className="card">
+          <h2>Vale não válido ou expirado</h2>
+          <p>Este vale já não existe: pode ter sido usado ou eliminado.</p>
+          <div className="confirm-actions">
+            <Link href={back} className="btn primary">Voltar</Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
   const clientName = (code.clients as unknown as { name: string } | null)?.name;
   const status = codeStatus(code);
 
@@ -68,7 +83,7 @@ export default async function UseCodePage({
             ) : null}
             <p>
               Marcar o vale <strong>{code.code}</strong> ({formatDiscount(code)}
-              {clientName ? `, ${clientName}` : ""}) como usado? Depois deixa de poder ser usado.
+              {clientName ? `, ${clientName}` : ""}) como usado? O vale é apagado e deixa de poder ser usado.
             </p>
             <div className="confirm-actions">
               <Link href={back} className="btn">Não, voltar</Link>

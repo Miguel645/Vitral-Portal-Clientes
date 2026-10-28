@@ -27,7 +27,6 @@ type Row = {
 const FILTERS: { key: string; label: string; empty: string }[] = [
   { key: "all", label: "Todos", empty: "Ainda não há vales." },
   { key: "active", label: "Ativos", empty: "Não há vales ativos." },
-  { key: "used", label: "Usados", empty: "Não há vales usados." },
   { key: "expired", label: "Expirados", empty: "Não há vales expirados." },
 ];
 
@@ -50,7 +49,6 @@ export default async function CodesPage({
     .select("id, code, kind, percent, amount_eur, note, valid_from, valid_to, used_at, client_id, clients(name)", {
       count: "exact",
     });
-  if (activeFilter === "used") query = query.not("used_at", "is", null);
   if (activeFilter === "active") query = query.is("used_at", null).lte("valid_from", today).gte("valid_to", today);
   if (activeFilter === "expired") query = query.is("used_at", null).lt("valid_to", today);
   const { data, count, error } = await query
