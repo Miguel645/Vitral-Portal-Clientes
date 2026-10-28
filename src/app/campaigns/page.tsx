@@ -14,14 +14,20 @@ type Row = {
   sent_at: string | null;
 };
 
-export default async function CampaignsPage({ searchParams }: { searchParams: Promise<{ message?: string }> }) {
-  const { message } = await searchParams;
+export default async function CampaignsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ message?: string; saved?: string }>;
+}) {
+  // `saved`: the campaign just saved, shown first and highlighted.
+  const { message, saved } = await searchParams;
   const supabase = await createClient();
   const { data } = await supabase
     .from("campaigns")
     .select("id, name, status, vale_percent, vale_amount_eur, created_at, sent_at")
     .order("created_at", { ascending: false });
-  const rows = (data ?? []) as Row[];
+  const all = (data ?? []) as Row[];
+  const rows = [...all.filter((c) => c.id === saved), ...all.filter((c) => c.id !== saved)];
 
   return (
     <main className="page-wide">
@@ -30,7 +36,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
         <Link href="/campaigns/new" className="btn primary">Nova campanha</Link>
       </header>
 
-      <Notice message={message} />
+      <Notice message={message} clear={["saved"]} />
 
       {rows.length === 0 ? (
         <div className="empty">Ainda não há campanhas. Carregue em “Nova campanha” para começar.</div>
@@ -39,11 +45,12 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
           {rows.map((c) => {
             const hasVale = c.vale_percent != null || c.vale_amount_eur != null;
             return (
-              <li key={c.id}>
+              <li key={c.id} className={c.id === saved ? "just-saved" : undefined}>
                 <Link href={`/campaigns/${c.id}`} className="list-link">
                   <div>
                     <div className="name">{c.name}</div>
                     <div className="meta">
+                      {c.id === saved ? <span className="just-saved-label">Acabada de guardar · </span> : null}
                       {c.status === "sent" && c.sent_at
                         ? `Enviada em ${formatDateTime(c.sent_at)}`
                         : `Criada em ${formatDateTime(c.created_at)}`}

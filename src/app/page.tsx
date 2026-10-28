@@ -17,9 +17,9 @@ type Client = {
 export default async function ClientsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string; message?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; message?: string; saved?: string }>;
 }) {
-  const { q = "", page: pageParam, message } = await searchParams;
+  const { q = "", page: pageParam, message, saved } = await searchParams;
   const page = pageFromParam(pageParam);
   const supabase = await createClient();
 
@@ -27,7 +27,10 @@ export default async function ClientsPage({
   const filter = clientSearchFilter(q);
   let query = supabase.from("clients").select("id, name, phone, email, consent", { count: "exact" });
   if (filter) query = query.or(filter);
-  const [{ data, count, error }, { count: totalCount }] = await Promise.all([
+  // Right after adding or editing a client, that client is shown first, highlighted,
+  // wherever they'd be in the list.
+  const savedId = saved && /^[0-9a-f-]{36}$/i.test(saved) ? saved : null;
+  const [{ data, count, error }, { count: totalCount }, { data: savedClient }] = await Promise.all([
     query
       .order("name")
       .order("id")
@@ -35,11 +38,15 @@ export default async function ClientsPage({
     filter
       ? supabase.from("clients").select("id", { count: "exact", head: true })
       : Promise.resolve({ count: null }),
+    savedId
+      ? supabase.from("clients").select("id, name, phone, email, consent").eq("id", savedId).maybeSingle<Client>()
+      : Promise.resolve({ data: null }),
   ]);
   // A page number past the end (e.g. after deleting clients): back to the first page.
   if (error && page > 1) redirect(filter ? `/?q=${encodeURIComponent(q)}` : "/");
 
-  const rows = (data ?? []) as Client[];
+  const pinned = savedClient as Client | null;
+  const rows = ((data ?? []) as Client[]).filter((c) => c.id !== pinned?.id);
   const found = count ?? rows.length;
   const total = filter ? totalCount ?? 0 : found;
   const plural = (n: number) => (n === 1 ? "cliente" : "clientes");
@@ -63,7 +70,7 @@ export default async function ClientsPage({
         <Link className="btn primary" href="/clients/new">Adicionar cliente</Link>
       </header>
 
-      <Notice message={message} />
+      <Notice message={message} clear={["saved"]} />
 
       <div className="bar">
         <form method="get">
@@ -72,7 +79,7 @@ export default async function ClientsPage({
         </form>
       </div>
 
-      {rows.length === 0 ? (
+      {rows.length === 0 && !pinned ? (
         <div className="empty">
           {total === 0
             ? "Ainda não há clientes. Selecione “Adicionar cliente” para criar o primeiro."
@@ -80,12 +87,15 @@ export default async function ClientsPage({
         </div>
       ) : (
         <ul className="list">
-          {rows.map((c) => (
-            <li key={c.id}>
+          {[...(pinned ? [pinned] : []), ...rows].map((c) => (
+            <li key={c.id} className={c.id === pinned?.id ? "just-saved" : undefined}>
               <Link href={`/clients/${c.id}`} className="list-link">
                 <div>
                   <div className="name">{c.name}</div>
-                  <div className="meta">{[formatPhone(c.phone), c.email].filter(Boolean).join("  ·  ")}</div>
+                  <div className="meta">
+                    {c.id === pinned?.id ? <span className="just-saved-label">Acabado de guardar · </span> : null}
+                    {[formatPhone(c.phone), c.email].filter(Boolean).join("  ·  ")}
+                  </div>
                 </div>
                 <span className={`tag${c.consent ? " on" : ""}`}>
                   {c.consent ? "Recebe mensagens" : "Não recebe mensagens"}
