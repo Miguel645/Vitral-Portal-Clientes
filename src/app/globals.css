@@ -101,6 +101,7 @@ textarea { resize: vertical; min-height: 110px; }
 .bar form input, .inline-form input { min-width: 0; }
 .inline-form { display: flex; gap: var(--sp-8); }
 .bar > .btn.primary { flex: 0 0 auto; }
+.pager { display: flex; gap: var(--sp-16); align-items: center; justify-content: center; flex-wrap: wrap; }
 
 /* Responsive grid */
 .client-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-32); align-items: start; }

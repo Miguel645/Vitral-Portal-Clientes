@@ -51,17 +51,24 @@ export default async function CampaignPage({
   }
 
   // Sent: a summary of what happened, from the log (tests not counted).
-  const [{ data: log }, { count: valeCount }] = await Promise.all([
-    supabase.from("sms_log").select("status").eq("campaign_id", id).eq("is_test", false),
+  // Counted in the database: a big campaign has more log rows than one request returns.
+  const logCount = (status: string) =>
+    supabase
+      .from("sms_log")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", id)
+      .eq("is_test", false)
+      .eq("status", status)
+      .then((r) => r.count ?? 0);
+  const [sent, simulated, failed, skipped, { count: valeCount }] = await Promise.all([
+    logCount("sent"),
+    logCount("simulated"),
+    logCount("failed"),
+    logCount("skipped"),
     supabase.from("discount_codes").select("id", { count: "exact", head: true }).eq("campaign_id", id),
   ]);
-  const counts = { ok: 0, failed: 0, skipped: 0 };
-  for (const r of log ?? []) {
-    if (r.status === "sent" || r.status === "simulated") counts.ok++;
-    else if (r.status === "skipped") counts.skipped++;
-    else counts.failed++;
-  }
-  const simulatedOnly = (log ?? []).some((r) => r.status === "simulated") && !(log ?? []).some((r) => r.status === "sent");
+  const counts = { ok: sent + simulated, failed, skipped };
+  const simulatedOnly = simulated > 0 && sent === 0;
   const hasVale = campaign.vale_valid_from && campaign.vale_valid_to;
 
   return (

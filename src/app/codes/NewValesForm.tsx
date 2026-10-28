@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useMemo, useRef, useState } from "react";
-import { createVales, type CreateValesState } from "./actions";
+import { createVales, searchClients, type CreateValesState } from "./actions";
 import { formatDiscount } from "@/lib/discount";
 import { formatDate, parseDisplayDate } from "@/lib/date";
 import DateInput from "@/app/_components/DateInput";
@@ -27,14 +27,20 @@ function clampPerClient(v: string): number {
 }
 
 export default function NewValesForm({
-  clients,
-  preselectedId,
+  totalClients,
+  consentingClients,
+  firstClientName,
+  preselected,
   today,
   defaultValidTo,
   appUrl,
 }: {
-  clients: Client[];
-  preselectedId?: string;
+  totalClients: number;
+  // How many of them receive messages (for the SMS totals with "Todos os clientes").
+  consentingClients: number;
+  // For the preview with "Todos os clientes".
+  firstClientName: string | null;
+  preselected?: Client;
   today: string;
   defaultValidTo: string;
   // Null when the unsubscribe link is switched off.
@@ -54,10 +60,11 @@ export default function NewValesForm({
   const [note, setNote] = useState("");
   const [perClient, setPerClient] = useState("1");
   const [target, setTarget] = useState<"pick" | "all">("pick");
-  const [selected, setSelected] = useState<string[]>(
-    preselectedId && clients.some((c) => c.id === preselectedId) ? [preselectedId] : []
-  );
+  const [selectedClients, setSelectedClients] = useState<Client[]>(preselected ? [preselected] : []);
   const [search, setSearch] = useState("");
+  // What the database found for the search box, and how many matched in total.
+  const [results, setResults] = useState<{ term: string; clients: Client[]; total: number }>({ term: "", clients: [], total: 0 });
+  const searchSeq = useRef(0);
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const comboRef = useRef<HTMLDivElement>(null);
@@ -67,19 +74,24 @@ export default function NewValesForm({
   // "Todos os clientes" asks for a second, explicit confirmation before creating/sending.
   const [confirming, setConfirming] = useState(false);
 
-  const byId = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
-  const selectedClients = selected.map((id) => byId.get(id)).filter((c): c is Client => !!c);
+  const selectedIds = useMemo(() => selectedClients.map((c) => c.id), [selectedClients]);
 
-  const term = search.trim().toLowerCase();
-  const matches = term
-    ? clients.filter(
-        (c) =>
-          !selected.includes(c.id) &&
-          (c.name.toLowerCase().includes(term) || c.phone.replace(/\s/g, "").includes(term.replace(/\s/g, "")))
-      )
-    : [];
-  const shown = matches.slice(0, MAX_RESULTS);
+  const term = search.trim();
+  // Shown only once the database answered for what's typed now.
+  const upToDate = results.term === term;
+  const shown = upToDate ? results.clients.filter((c) => !selectedIds.includes(c.id)) : [];
   const showDropdown = open && term !== "";
+
+  // Ask the database a moment after typing stops; an older answer arriving late is ignored.
+  useEffect(() => {
+    if (!term) return;
+    const seq = ++searchSeq.current;
+    const timer = setTimeout(async () => {
+      const found = await searchClients(term, selectedIds, MAX_RESULTS).catch(() => ({ clients: [], total: 0 }));
+      if (seq === searchSeq.current) setResults({ term, ...found });
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [term, selectedIds]);
 
   // After a failed save, take the person to the field the error is about (it may be far up the page).
   useEffect(() => {
@@ -96,11 +108,11 @@ export default function NewValesForm({
   }, []);
 
   function remove(id: string) {
-    setSelected((prev) => prev.filter((x) => x !== id));
+    setSelectedClients((prev) => prev.filter((x) => x.id !== id));
   }
 
-  function pick(id: string) {
-    setSelected((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  function pick(client: Client) {
+    setSelectedClients((prev) => (prev.some((c) => c.id === client.id) ? prev : [...prev, client]));
     setSearch("");
     setOpen(false);
     setHighlight(0);
@@ -117,7 +129,7 @@ export default function NewValesForm({
     } else if (e.key === "Enter") {
       // Never submit the whole form from the search box.
       e.preventDefault();
-      if (showDropdown && shown[highlight]) pick(shown[highlight].id);
+      if (showDropdown && shown[highlight]) pick(shown[highlight]);
     } else if (e.key === "Escape") {
       setOpen(false);
     }
@@ -128,11 +140,11 @@ export default function NewValesForm({
     setPerClient(v);
   }
 
-  const targets = target === "all" ? clients : selectedClients;
+  const targetCount = target === "all" ? totalClients : selectedClients.length;
   const perClientNum = clampPerClient(perClient);
-  const valeCount = targets.length * perClientNum;
-  const smsCount = withSms ? targets.filter((c) => c.consent).length : 0;
-  const noConsentCount = withSms ? targets.length - smsCount : 0;
+  const valeCount = targetCount * perClientNum;
+  const smsCount = !withSms ? 0 : target === "all" ? consentingClients : selectedClients.filter((c) => c.consent).length;
+  const noConsentCount = withSms ? targetCount - smsCount : 0;
 
   const numericValue = Number(value.replace(",", "."));
   const discountText =
@@ -148,7 +160,7 @@ export default function NewValesForm({
       ? "A data “Válido até” tem de ser igual ou depois de “Válido a partir de”."
       : undefined;
 
-  const previewName = clientFirstName(targets[0]?.name ?? "Maria");
+  const previewName = clientFirstName((target === "all" ? firstClientName : selectedClients[0]?.name) ?? "Maria");
   const preview = composeValeMessage(
     smsText,
     {
@@ -272,7 +284,7 @@ export default function NewValesForm({
                 setTarget("all");
                 setConfirming(false);
               }} />
-            <span>Todos os clientes ({clients.length})</span>
+            <span>Todos os clientes ({totalClients})</span>
           </label>
         </div>
 
@@ -326,7 +338,9 @@ export default function NewValesForm({
                 />
                 {showDropdown ? (
                   <ul id="client-options" role="listbox" className="combo-list">
-                    {shown.length === 0 ? (
+                    {!upToDate ? (
+                      <li className="combo-empty">A procurar…</li>
+                    ) : shown.length === 0 ? (
                       <li className="combo-empty">Nenhum cliente encontrado.</li>
                     ) : (
                       shown.map((c, i) => (
@@ -339,7 +353,7 @@ export default function NewValesForm({
                           onMouseEnter={() => setHighlight(i)}
                           // Keep focus in the search box; the click below picks the client.
                           onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => pick(c.id)}
+                          onClick={() => pick(c)}
                         >
                           <span className="name">{c.name}</span>
                           <span className="meta">
@@ -349,8 +363,8 @@ export default function NewValesForm({
                         </li>
                       ))
                     )}
-                    {matches.length > MAX_RESULTS ? (
-                      <li className="combo-empty">Escreva mais para ver os outros {matches.length - MAX_RESULTS}.</li>
+                    {upToDate && results.total > shown.length ? (
+                      <li className="combo-empty">Escreva mais para ver os outros {results.total - shown.length}.</li>
                     ) : null}
                   </ul>
                 ) : null}
@@ -416,9 +430,9 @@ export default function NewValesForm({
         <p className="name">
           {valeCount === 0
             ? "Ainda não escolheu nenhum cliente."
-            : `Vai criar ${valeCount} ${valeCount === 1 ? "vale" : "vales"} para ${targets.length} ${targets.length === 1 ? "cliente" : "clientes"}.`}
+            : `Vai criar ${valeCount} ${valeCount === 1 ? "vale" : "vales"} para ${targetCount} ${targetCount === 1 ? "cliente" : "clientes"}.`}
         </p>
-        {withSms && targets.length > 0 ? (
+        {withSms && targetCount > 0 ? (
           <p className="meta">
             {smsCount} {smsCount === 1 ? "cliente vai receber" : "clientes vão receber"} SMS.
             {noConsentCount > 0
@@ -431,7 +445,7 @@ export default function NewValesForm({
           <div className="preview" role="alert">
             <p className="preview-title">Tem a certeza?</p>
             <p>
-              {`Vai criar ${valeCount} ${valeCount === 1 ? "vale" : "vales"} para todos os clientes (${targets.length})`}
+              {`Vai criar ${valeCount} ${valeCount === 1 ? "vale" : "vales"} para todos os clientes (${targetCount})`}
               {withSms
                 ? ` e enviar ${smsCount} SMS (${smsCount * counter.parts} ${smsCount * counter.parts === 1 ? "parte" : "partes"} de SMS no total).`
                 : "."}{" "}

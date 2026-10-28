@@ -7,6 +7,7 @@ import { isSimulation, sendSms, type SendResult } from "@/lib/messaging";
 import { normalizePhone } from "@/lib/phone";
 import { unsubscribeBaseUrl } from "@/lib/optOut";
 import { generateUniqueCodes } from "@/lib/codes";
+import { fetchAll } from "@/lib/fetchAll";
 import { INVALID_DATE, parseDisplayDate } from "@/lib/date";
 import { clientFirstName, composeCampaignMessage } from "@/lib/smsText";
 
@@ -166,14 +167,16 @@ async function sendToAll(
   id: string,
   row: CampaignRow
 ): Promise<{ message: string } | { error: string }> {
-  // Only clients who want to receive messages, never anyone else.
-  const { data, error } = await supabase
-    .from("clients")
-    .select("id, name, phone, short_token")
-    .eq("consent", true)
-    .order("name");
-  if (error) return { error: "Não foi possível ler a lista de clientes. Tente novamente." };
-  const recipients = data ?? [];
+  // Only clients who want to receive messages, never anyone else (1,000 at a time).
+  type Recipient = { id: string; name: string; phone: string; short_token: string };
+  let recipients: Recipient[];
+  try {
+    recipients = await fetchAll<Recipient>((from, to) =>
+      supabase.from("clients").select("id, name, phone, short_token").eq("consent", true).order("id").range(from, to)
+    );
+  } catch {
+    return { error: "Não foi possível ler a lista de clientes. Tente novamente." };
+  }
   if (recipients.length === 0) return { error: "Nenhum cliente quer receber mensagens. Nada foi enviado." };
 
   // Mark it as sent first, so a double tap (or a second tab) can never send it twice.
