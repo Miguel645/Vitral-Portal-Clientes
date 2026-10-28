@@ -62,7 +62,12 @@ export default async function CampaignPage({
       <main className="page-medium">
         {header}
         <Notice message={message} />
-        {campaign.status === "scheduled" && campaign.starts_on ? (
+        {campaign.status === "scheduled" && campaign.live_until && campaign.live_until < lisbonToday() ? (
+          <p className="err" role="alert">
+            Esta campanha não foi enviada: o envio das 10h não aconteceu entre o início e o fim. Escolha novas datas e
+            carregue em “Agendar campanha” ou “Enviar campanha”.
+          </p>
+        ) : campaign.status === "scheduled" && campaign.starts_on ? (
           <p className="notice" role="status">
             Agendada: vai ser enviada a {formatDate(campaign.starts_on)}, às 10h. “Guardar rascunho” cancela o agendamento.
           </p>
