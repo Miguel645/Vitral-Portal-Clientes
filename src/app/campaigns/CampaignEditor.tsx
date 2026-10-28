@@ -81,7 +81,8 @@ export default function CampaignEditor({
   function run(intent: Intent) {
     const data = new FormData();
     data.set("intent", intent);
-    if (campaign?.id) data.set("id", campaign.id);
+    const id = campaign?.id ?? state.savedId;
+    if (id) data.set("id", id);
     data.set("name", name);
     data.set("sms_text", message);
     if (withVale) {

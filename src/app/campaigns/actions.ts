@@ -12,7 +12,8 @@ import { clientFirstName, composeCampaignMessage } from "@/lib/smsText";
 export type CampaignField = "name" | "sms_text" | "value" | "valid_from" | "valid_to" | "phone";
 
 // `intent` says which button was pressed, so its result shows next to it.
-export type CampaignState = { error?: string; field?: CampaignField; ok?: string; intent?: Intent };
+// `savedId`: a new campaign was saved as a draft before sending failed, so the next try updates it.
+export type CampaignState = { error?: string; field?: CampaignField; ok?: string; intent?: Intent; savedId?: string };
 
 type Intent = "save" | "test" | "send";
 
@@ -119,7 +120,7 @@ export async function campaignAction(_prev: CampaignState, formData: FormData): 
   if (intent === "save") redirect(`/campaigns/${id}?message=${encodeURIComponent("Campanha guardada.")}`);
 
   const result = await sendToAll(supabase, id, parsed.row);
-  if ("error" in result) return { error: result.error, intent };
+  if ("error" in result) return { error: result.error, intent, savedId: id };
   redirect(`/campaigns/${id}?message=${encodeURIComponent(result.message)}`);
 }
 
@@ -187,7 +188,13 @@ async function sendToAll(
   const valeByClient = new Map<string, string>();
   if (row.vale_valid_from && row.vale_valid_to) {
     const withPhone = recipients.filter((c) => normalizePhone(c.phone).ok);
-    const codes = await generateUniqueCodes(supabase, withPhone.length);
+    let codes: string[];
+    try {
+      codes = await generateUniqueCodes(supabase, withPhone.length);
+    } catch {
+      await supabase.from("campaigns").update({ status: "draft", sent_at: null }).eq("id", id);
+      return { error: "Não foi possível criar os vales, por isso nada foi enviado. Tente novamente." };
+    }
     const vales = withPhone.map((c, i) => {
       valeByClient.set(c.id, codes[i]);
       return {
