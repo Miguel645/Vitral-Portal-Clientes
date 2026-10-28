@@ -85,5 +85,6 @@ Miguel is the only user for now. He works as a systems/support engineer and is b
 ## Working rules
 
 - Commit and push to GitHub after each finished change, with a clear message.
+- Work on a branch, open a pull request and merge it into `main` straight away for small changes (owner decision, 2026-10-28) — merging puts it live on Vercel; check the deploy finished. Still ask first for big changes, and never merge code that needs a database migration until Miguel says he ran it.
 - Tell Miguel what changed in one or two plain sentences.
 - Run `npm run build` before pushing to catch errors.

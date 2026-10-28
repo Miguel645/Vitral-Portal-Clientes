@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/date";
 import { formatPhone } from "@/lib/phone";
@@ -33,7 +32,6 @@ export default async function CampaignsLogPage() {
     <main className="page-wide">
       <header className="top">
         <h1>Registo de SMS</h1>
-        <Link className="btn primary" href="/campaigns/new">Nova campanha</Link>
       </header>
 
       {rows.length === 0 ? (
