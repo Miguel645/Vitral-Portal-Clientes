@@ -7,6 +7,9 @@ import { formatDiscount } from "@/lib/discount";
 import { isSimulation } from "@/lib/messaging/mode";
 import CampaignEditor from "../CampaignEditor";
 import { loadEditorData } from "../editorData";
+import { pendingRecipients, RESUME_AFTER_MS } from "../recipients";
+import { resumeCampaign } from "../actions";
+import SubmitButton from "@/app/_components/SubmitButton";
 
 // "Enviar campanha" sends one SMS per client in small groups, which can take a while.
 export const maxDuration = 60;
@@ -60,14 +63,22 @@ export default async function CampaignPage({
       .eq("is_test", false)
       .eq("status", status)
       .then((r) => r.count ?? 0);
-  const [sent, simulated, failed, skipped, { count: valeCount }] = await Promise.all([
+  const [sent, simulated, failed, skipped, interrupted, { count: valeCount }, { data: firstLog }, pending] = await Promise.all([
     logCount("sent"),
     logCount("simulated"),
     logCount("failed"),
     logCount("skipped"),
+    logCount("sending"),
     supabase.from("discount_codes").select("id", { count: "exact", head: true }).eq("campaign_id", id),
+    // sent_at moves forward with each "Continuar envio"; the first SMS says when it really started.
+    supabase.from("sms_log").select("created_at").eq("campaign_id", id).eq("is_test", false).order("created_at").limit(1),
+    // Clients who receive messages and aren't in the log yet: the send stopped before them.
+    pendingRecipients(supabase, id).then((r) => r.length),
   ]);
   const counts = { ok: sent + simulated, failed, skipped };
+  const startedAt = firstLog?.[0]?.created_at ?? campaign.sent_at;
+  // An earlier run may still be going for up to a minute; only offer to continue once it surely stopped.
+  const canResume = pending > 0 && !!campaign.sent_at && Date.now() - new Date(campaign.sent_at).getTime() >= RESUME_AFTER_MS;
   const simulatedOnly = simulated > 0 && sent === 0;
   const hasVale = campaign.vale_valid_from && campaign.vale_valid_to;
 
@@ -79,13 +90,23 @@ export default async function CampaignPage({
       <div className="card">
         <h2>Resumo</h2>
         <p className="meta" style={{ marginBottom: "var(--sp-16)" }}>
-          {campaign.sent_at ? `Enviada em ${formatDateTime(campaign.sent_at)}.` : "Enviada."}
+          {startedAt ? `Enviada em ${formatDateTime(startedAt)}.` : "Enviada."}
           {simulatedOnly && isSimulation() ? " Em modo simulação: nada foi enviado de verdade." : ""}
         </p>
         <ul className="summary">
           <li>{counts.ok} {simulatedOnly ? (counts.ok === 1 ? "simulado" : "simulados") : counts.ok === 1 ? "enviado" : "enviados"}</li>
           <li>{counts.failed} {counts.failed === 1 ? "falhou" : "falharam"}</li>
           <li>{counts.skipped} {counts.skipped === 1 ? "ignorado" : "ignorados"} (número inválido)</li>
+          {interrupted > 0 ? (
+            <li>
+              {interrupted} {interrupted === 1 ? "interrompido" : "interrompidos"} (o envio parou a meio; veja no histórico)
+            </li>
+          ) : null}
+          {pending > 0 ? (
+            <li>
+              {pending} {pending === 1 ? "cliente ainda não recebeu" : "clientes ainda não receberam"}
+            </li>
+          ) : null}
           {hasVale ? (
             <li>
               {valeCount ?? 0} {valeCount === 1 ? "vale criado" : "vales criados"} de{" "}
@@ -98,7 +119,17 @@ export default async function CampaignPage({
           <p className="preview-title">Texto do SMS</p>
           <p className="meta" style={{ whiteSpace: "pre-wrap" }}>{campaign.sms_text}</p>
         </div>
+        {pending > 0 && !canResume ? (
+          <p className="meta">O envio pode ainda estar a decorrer. Atualize a página daqui a um minuto.</p>
+        ) : null}
         <div className="actions">
+          {canResume ? (
+            <form action={resumeCampaign}>
+              <input type="hidden" name="id" value={campaign.id} />
+              <input type="hidden" name="sent_at" value={campaign.sent_at!} />
+              <SubmitButton pendingText="A enviar…">Continuar envio</SubmitButton>
+            </form>
+          ) : null}
           <Link href={`/campaigns/log?campaign=${campaign.id}`} className="btn">Ver histórico de envios</Link>
         </div>
       </div>

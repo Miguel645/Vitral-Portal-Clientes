@@ -21,6 +21,8 @@ const STATUS_LABEL: Record<string, string> = {
   sent: "Enviado",
   failed: "Falhou",
   skipped: "Ignorado",
+  // The page stopped while the SMS was being sent (see INTERRUPTED_STATUS in messaging).
+  sending: "Interrompido",
 };
 
 const LIMIT = 100;
@@ -111,7 +113,7 @@ export default async function SendHistoryPage({
                   <div className="meta">{r.body}</div>
                   {r.error ? <div className="meta err-text">Motivo: {r.error}</div> : null}
                 </div>
-                <span className={`tag${r.status === "sent" ? " on" : r.status === "failed" || r.status === "skipped" ? " warn" : ""}`}>
+                <span className={`tag${r.status === "sent" ? " on" : r.status === "failed" || r.status === "skipped" || r.status === "sending" ? " warn" : ""}`}>
                   {STATUS_LABEL[r.status] ?? r.status}
                 </span>
               </li>
