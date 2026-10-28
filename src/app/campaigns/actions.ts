@@ -8,6 +8,7 @@ import { normalizePhone } from "@/lib/phone";
 import { unsubscribeBaseUrl } from "@/lib/optOut";
 import { generateUniqueCodes } from "@/lib/codes";
 import { fetchAll } from "@/lib/fetchAll";
+import { pendingRecipients, RESUME_AFTER_MS, type Recipient } from "./recipients";
 import { INVALID_DATE, parseDisplayDate } from "@/lib/date";
 import { clientFirstName, composeCampaignMessage } from "@/lib/smsText";
 
@@ -157,23 +158,24 @@ async function sendTest(formData: FormData): Promise<CampaignState> {
 }
 
 // How many SMS go out at the same time, and the pause between groups:
-// gentle on Twilio, and still quick enough for a few hundred clients within the
-// page's 60-second limit.
+// gentle on the SMS provider, and still quick enough for a few hundred clients
+// within the page's 60-second limit.
 const BATCH = 10;
 const PAUSE_MS = 500;
-
+// No new group starts after this long, so the page finishes before Vercel's
+// 60-second limit (a group can take up to 20 seconds if the provider is slow).
+// Whoever is left gets their SMS with "Continuar envio" on the campaign's summary.
+const TIME_BUDGET_MS = 35_000;
 async function sendToAll(
   supabase: SupabaseClient,
   id: string,
   row: CampaignRow
 ): Promise<{ message: string } | { error: string }> {
+  const startedAt = Date.now();
   // Only clients who want to receive messages, never anyone else (1,000 at a time).
-  type Recipient = { id: string; name: string; phone: string; short_token: string };
   let recipients: Recipient[];
   try {
-    recipients = await fetchAll<Recipient>((from, to) =>
-      supabase.from("clients").select("id, name, phone, short_token").eq("consent", true).order("id").range(from, to)
-    );
+    recipients = await pendingRecipients(supabase, id);
   } catch {
     return { error: "Não foi possível ler a lista de clientes. Tente novamente." };
   }
@@ -188,52 +190,123 @@ async function sendToAll(
     .select("id");
   if (!claimed?.length) return { error: "Esta campanha já foi enviada. Veja o resumo na lista de campanhas." };
 
-  // A vale only for the clients whose number can receive the SMS.
+  const result = await deliver(supabase, id, row, recipients, startedAt);
+  if ("error" in result && result.nothingSent) {
+    // Nothing was created or sent: put the campaign back to draft so it can be tried again.
+    await supabase.from("campaigns").update({ status: "draft", sent_at: null }).eq("id", id);
+  }
+  return result;
+}
+
+// "Continuar envio" on a sent campaign's summary: sends only to the clients who
+// receive messages and have nothing in the log for it yet.
+export async function resumeCampaign(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const seenSentAt = String(formData.get("sent_at") ?? "");
+  const back = (message: string) => redirect(`/campaigns/${id}?message=${encodeURIComponent(message)}`);
+  if (!/^[0-9a-f-]{36}$/i.test(id)) redirect("/campaigns");
+  const startedAt = Date.now();
+
+  const supabase = await createClient();
+  const { data: campaign } = await supabase
+    .from("campaigns")
+    .select("name, sms_text, status, sent_at, vale_percent, vale_amount_eur, vale_valid_from, vale_valid_to")
+    .eq("id", id)
+    .maybeSingle();
+  if (!campaign || campaign.status !== "sent" || !campaign.sent_at) back("Esta campanha ainda não foi enviada.");
+  if (Date.now() - new Date(campaign!.sent_at).getTime() < RESUME_AFTER_MS) {
+    back("O envio ainda pode estar a decorrer. Espere um minuto, atualize a página e veja se ainda falta alguém.");
+  }
+
+  // Only one run at a time: this moves sent_at forward only if nobody else did since
+  // the page was opened, so a double tap or a second tab gets nothing.
+  const { data: claimed } = await supabase
+    .from("campaigns")
+    .update({ sent_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("status", "sent")
+    .eq("sent_at", seenSentAt)
+    .select("id");
+  if (!claimed?.length) back("O envio já foi continuado noutra janela. Atualize a página para ver o resumo.");
+
+  let recipients: Recipient[];
+  try {
+    recipients = await pendingRecipients(supabase, id);
+  } catch {
+    back("Não foi possível ler a lista de clientes. Tente novamente.");
+    return;
+  }
+  if (recipients.length === 0) back("Já não falta ninguém: todos os clientes que recebem mensagens estão no histórico.");
+
+  const result = await deliver(supabase, id, campaign as CampaignRow, recipients, startedAt);
+  back("error" in result ? result.error : result.message);
+}
+
+// Creates the missing vales (if the campaign has one) and sends to `recipients`,
+// who must all be clients who receive messages with no log row for this campaign.
+async function deliver(
+  supabase: SupabaseClient,
+  id: string,
+  row: CampaignRow,
+  recipients: Recipient[],
+  startedAt: number
+): Promise<{ message: string } | { error: string; nothingSent: boolean }> {
+  // A vale only for the clients whose number can receive the SMS. Vales created by
+  // an earlier, interrupted run are reused.
   const valeByClient = new Map<string, string>();
   if (row.vale_valid_from && row.vale_valid_to) {
-    const withPhone = recipients.filter((c) => normalizePhone(c.phone).ok);
+    let created: { client_id: string | null; code: string }[];
+    try {
+      created = await fetchAll<{ client_id: string | null; code: string }>((from, to) =>
+        supabase.from("discount_codes").select("client_id, code").eq("campaign_id", id).order("id").range(from, to)
+      );
+    } catch {
+      return { error: "Não foi possível ler os vales da campanha, por isso nada foi enviado. Tente novamente.", nothingSent: true };
+    }
+    for (const v of created) if (v.client_id && !valeByClient.has(v.client_id)) valeByClient.set(v.client_id, v.code);
+
+    const needVale = recipients.filter((c) => normalizePhone(c.phone).ok && !valeByClient.has(c.id));
     let codes: string[];
     try {
-      codes = await generateUniqueCodes(supabase, withPhone.length);
+      codes = await generateUniqueCodes(supabase, needVale.length);
     } catch {
-      await supabase.from("campaigns").update({ status: "draft", sent_at: null }).eq("id", id);
-      return { error: "Não foi possível criar os vales, por isso nada foi enviado. Tente novamente." };
+      return { error: "Não foi possível criar os vales, por isso nada foi enviado. Tente novamente.", nothingSent: true };
     }
-    const vales = withPhone.map((c, i) => {
-      valeByClient.set(c.id, codes[i]);
-      return {
-        code: codes[i],
-        kind: "manual",
-        percent: row.vale_percent,
-        amount_eur: row.vale_amount_eur,
-        note: `Campanha: ${row.name}`.slice(0, 80),
-        client_id: c.id,
-        campaign_id: id,
-        valid_from: row.vale_valid_from,
-        valid_to: row.vale_valid_to,
-      };
-    });
+    const vales = needVale.map((c, i) => ({
+      code: codes[i],
+      kind: "manual",
+      percent: row.vale_percent,
+      amount_eur: row.vale_amount_eur,
+      note: `Campanha: ${row.name}`.slice(0, 80),
+      client_id: c.id,
+      campaign_id: id,
+      valid_from: row.vale_valid_from,
+      valid_to: row.vale_valid_to,
+    }));
     for (let i = 0; i < vales.length; i += 500) {
-      const { error: valeError } = await supabase.from("discount_codes").insert(vales.slice(i, i + 500));
+      const chunk = vales.slice(i, i + 500);
+      const { error: valeError } = await supabase.from("discount_codes").insert(chunk);
       if (valeError) {
-        if (i === 0) {
-          // Nothing was created or sent: put the campaign back to draft so it can be tried again.
-          await supabase.from("campaigns").update({ status: "draft", sent_at: null }).eq("id", id);
-          return { error: "Não foi possível criar os vales, por isso nada foi enviado. Tente novamente." };
-        }
-        return {
-          error: `Só foram criados ${i} de ${vales.length} vales e nenhum SMS foi enviado. Veja a lista de vales antes de continuar.`,
-        };
+        return i === 0 && created.length === 0
+          ? { error: "Não foi possível criar os vales, por isso nada foi enviado. Tente novamente.", nothingSent: true }
+          : {
+              error: `Só foram criados ${i} de ${vales.length} vales e nenhum SMS foi enviado. Carregue em “Continuar envio” para tentar de novo.`,
+              nothingSent: false,
+            };
       }
+      for (const v of chunk) valeByClient.set(v.client_id, v.code);
     }
   }
 
   const appUrl = unsubscribeBaseUrl();
   const counts = { ok: 0, failed: 0, skipped: 0 };
+  let reached = 0;
   for (let i = 0; i < recipients.length; i += BATCH) {
+    if (Date.now() - startedAt > TIME_BUDGET_MS) break;
     if (i > 0) await new Promise((r) => setTimeout(r, PAUSE_MS));
+    const group = recipients.slice(i, i + BATCH);
     const results: SendResult[] = await Promise.all(
-      recipients.slice(i, i + BATCH).map((c) =>
+      group.map((c) =>
         sendSms(
           c.phone,
           composeCampaignMessage(
@@ -246,6 +319,7 @@ async function sendToAll(
         )
       )
     );
+    reached += group.length;
     for (const r of results) {
       if (r.ok) counts.ok++;
       else if (r.status === "skipped") counts.skipped++;
@@ -260,5 +334,11 @@ async function sendToAll(
   ];
   if (counts.failed > 0) parts.push(`${counts.failed} falharam.`);
   if (counts.skipped > 0) parts.push(`${counts.skipped} ignorados (número inválido).`);
+  const left = recipients.length - reached;
+  if (left > 0) {
+    parts.push(
+      `Ainda ${left === 1 ? "falta 1 cliente" : `faltam ${left} clientes`}: daqui a um minuto, carregue em “Continuar envio”.`
+    );
+  }
   return { message: parts.join(" ") };
 }

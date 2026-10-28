@@ -28,19 +28,29 @@ function smsProvider(): SmsProvider {
   return simulationProvider;
 }
 
+// Logged before the provider is asked, and replaced by the real result once it answers.
+// If the page stops in between (e.g. the 60-second limit), the row stays like this:
+// the SMS may or may not have gone out, and it is never sent again.
+export const INTERRUPTED_STATUS = "sending";
+const INTERRUPTED_ERROR = "O envio parou antes de haver resposta. Veja nos registos do fornecedor de SMS se chegou.";
+
 // The one way to send an SMS. Server-only: credentials never reach the browser.
 // Every attempt is written to sms_log, including numbers that were skipped and why.
 export async function sendSms(to: string, text: string, opts: SendOptions = {}): Promise<SendResult> {
   const supabase = opts.db ?? (await createClient());
   const log = (row: { to_phone: string; status: string; error: string | null; provider_id: string | null }) =>
-    supabase.from("sms_log").insert({
-      ...row,
-      channel: "sms",
-      body: text,
-      client_id: opts.clientId ?? null,
-      campaign_id: opts.campaignId ?? null,
-      is_test: opts.isTest ?? false,
-    });
+    supabase
+      .from("sms_log")
+      .insert({
+        ...row,
+        channel: "sms",
+        body: text,
+        client_id: opts.clientId ?? null,
+        campaign_id: opts.campaignId ?? null,
+        is_test: opts.isTest ?? false,
+      })
+      .select("id")
+      .single();
 
   const phone = normalizePhone(to);
   if (!phone.ok) {
@@ -49,13 +59,32 @@ export async function sendSms(to: string, text: string, opts: SendOptions = {}):
     return { ok: false, status: "skipped", providerId: null, error };
   }
 
+  // No log row, no SMS: a campaign that continues later relies on the log to never send twice.
+  const { data: logged } = await log({
+    to_phone: phone.value,
+    status: INTERRUPTED_STATUS,
+    error: INTERRUPTED_ERROR,
+    provider_id: null,
+  });
+  if (!logged) {
+    return {
+      ok: false,
+      status: "failed",
+      providerId: null,
+      error: "Não foi possível registar o envio, por isso o SMS não foi enviado. Tente novamente.",
+    };
+  }
+
   const provider = smsProvider();
   const result = await provider.send(phone.value, text);
   const sent: SendResult = result.ok
     ? { ok: true, status: provider.okStatus, providerId: result.providerId, error: null }
     : { ok: false, status: "failed", providerId: null, error: result.error };
 
-  await log({ to_phone: phone.value, status: sent.status, error: sent.error, provider_id: sent.providerId });
+  await supabase
+    .from("sms_log")
+    .update({ status: sent.status, error: sent.error, provider_id: sent.providerId })
+    .eq("id", logged.id);
   return sent;
 }
 
