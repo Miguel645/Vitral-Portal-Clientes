@@ -36,6 +36,15 @@ export function isLeapYear(year: number) {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 }
 
+// Is `today` the birthday of someone born on `birthDate` (both ISO dates)?
+// Born on 29 February: 28 February in years that aren't leap years.
+export function isBirthdayOn(birthDate: string, today: string): boolean {
+  const [, bm, bd] = birthDate.split("-").map(Number);
+  const [ty, tm, td] = today.split("-").map(Number);
+  const day = bm === 2 && bd === 29 && !isLeapYear(ty) ? 28 : bd;
+  return bm === tm && day === td;
+}
+
 export const INVALID_DATE = "Escreva uma data válida, no formato dd/mm/aaaa.";
 
 // "25/12/2026" (or "2026-12-25") -> "2026-12-25". Null when it isn't a real date

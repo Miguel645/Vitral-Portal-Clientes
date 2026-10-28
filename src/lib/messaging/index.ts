@@ -90,6 +90,8 @@ export async function sendSms(to: string, text: string, opts: SendOptions = {}):
 
 // Email comes later (planned provider: Resend). Same shape as sendSms, so pages
 // won't need to change when it's added.
+// The parameters aren't used until then.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function sendEmail(_to: string, _subject: string, _text: string, _opts: SendOptions = {}): Promise<SendResult> {
   return { ok: false, status: "failed", providerId: null, error: "O envio de email ainda não está disponível." };
 }
