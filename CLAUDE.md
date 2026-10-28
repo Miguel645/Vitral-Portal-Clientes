@@ -38,6 +38,7 @@ Miguel is the only user for now. He works as a systems/support engineer and is b
 
 ## Interface rules (apply to every screen, not just where first introduced)
 
+- Always the light look (white boxes on a light grey page), even when the device is set to dark mode — there is no dark theme (owner decision, 2026-10-28). `globals.css` has only the light colours and `color-scheme: light`.
 - Base text size is 19-20px, set via `:root { font-size: 20px }` (19px on phones) so every other size — defined in `rem` in `globals.css` — scales with it and still respects browser zoom. Form labels are at least 1rem and use `var(--ink)` (dark, not `var(--muted)`) for contrast; hints under fields are at least 0.95rem.
 - Every button and form control has `min-height: 48px` and generous spacing — easy to tap on a phone, not just a mouse.
 - One clear primary button per screen (`.btn.primary`); everything else is a quieter plain `.btn`. A destructive "Eliminar" never sits in a main button row — it lives in the "…" menu (`DeleteMenu`) and always asks for confirmation in-page.
