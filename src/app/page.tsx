@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatPhone } from "@/lib/phone";
+import { clientSearchFilter } from "@/lib/clientSearch";
 import Notice from "@/app/_components/Notice";
+import Pager, { PAGE_SIZE, pageFromParam } from "@/app/_components/Pager";
 
 type Client = {
   id: string;
@@ -14,28 +17,39 @@ type Client = {
 export default async function ClientsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; message?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; message?: string }>;
 }) {
-  const { q = "", message } = await searchParams;
+  const { q = "", page: pageParam, message } = await searchParams;
+  const page = pageFromParam(pageParam);
   const supabase = await createClient();
 
-  const { data } = await supabase
-    .from("clients")
-    .select("id, name, phone, email, consent")
-    .order("name");
+  // The search runs in the database, 100 clients per page.
+  const filter = clientSearchFilter(q);
+  let query = supabase.from("clients").select("id, name, phone, email, consent", { count: "exact" });
+  if (filter) query = query.or(filter);
+  const [{ data, count, error }, { count: totalCount }] = await Promise.all([
+    query
+      .order("name")
+      .order("id")
+      .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
+    filter
+      ? supabase.from("clients").select("id", { count: "exact", head: true })
+      : Promise.resolve({ count: null }),
+  ]);
+  // A page number past the end (e.g. after deleting clients): back to the first page.
+  if (error && page > 1) redirect(filter ? `/?q=${encodeURIComponent(q)}` : "/");
 
-  const all = (data ?? []) as Client[];
-  const term = q.trim().toLowerCase();
-  // Phone search ignores spaces and other separators ("912 345" finds "912345678").
-  const termDigits = /^[\d\s+().-]+$/.test(term) ? term.replace(/\D/g, "") : "";
-  const rows = term
-    ? all.filter(
-        (c) =>
-          [c.name, c.email ?? ""].some((v) => v.toLowerCase().includes(term)) ||
-          (termDigits !== "" && c.phone.replace(/\D/g, "").includes(termDigits))
-      )
-    : all;
+  const rows = (data ?? []) as Client[];
+  const found = count ?? rows.length;
+  const total = filter ? totalCount ?? 0 : found;
   const plural = (n: number) => (n === 1 ? "cliente" : "clientes");
+  const pageHref = (p: number) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (p > 1) params.set("page", String(p));
+    const s = params.toString();
+    return s ? `/?${s}` : "/";
+  };
 
   return (
     <main className="page-wide">
@@ -43,7 +57,7 @@ export default async function ClientsPage({
         <div>
           <h1>Clientes Vitral</h1>
           <span className="count">
-            {term ? `${rows.length} de ${all.length} ${plural(all.length)}` : `${all.length} ${plural(all.length)}`}
+            {filter ? `${found} de ${total} ${plural(total)}` : `${total} ${plural(total)}`}
           </span>
         </div>
         <Link className="btn primary" href="/clients/new">Adicionar cliente</Link>
@@ -60,7 +74,7 @@ export default async function ClientsPage({
 
       {rows.length === 0 ? (
         <div className="empty">
-          {all.length === 0
+          {total === 0
             ? "Ainda não há clientes. Selecione “Adicionar cliente” para criar o primeiro."
             : "Nenhum cliente corresponde à pesquisa."}
         </div>
@@ -81,6 +95,8 @@ export default async function ClientsPage({
           ))}
         </ul>
       )}
+
+      <Pager page={page} total={found} href={pageHref} />
     </main>
   );
 }

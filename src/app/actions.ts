@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { normalizePhone, samePhone } from "@/lib/phone";
+import { digitsPattern } from "@/lib/clientSearch";
 import { INVALID_DATE, lisbonToday, parseDisplayDate } from "@/lib/date";
 
 export type ClientFields = { name: string; phone: string; email: string; birth_date: string; consent: boolean };
@@ -73,7 +74,12 @@ export async function saveClient(_prev: ClientFormState, formData: FormData): Pr
 
   // Warn once if another client already has this number; saving again confirms it.
   if (!allowDuplicate || !samePhone(allowDuplicate, row.phone)) {
-    const { data: others } = await supabase.from("clients").select("id, name, phone");
+    // Only the clients whose number ends in the same 9 digits, however it was typed.
+    const digits = row.phone.replace(/\D/g, "").slice(-9);
+    const { data: others } = await supabase
+      .from("clients")
+      .select("id, name, phone")
+      .filter("phone", "imatch", `${digitsPattern(digits)}[^0-9]*$`);
     const dup = (others ?? []).find((c) => c.id !== id && samePhone(c.phone, row.phone));
     if (dup) return { duplicateOf: dup.name, values };
   }

@@ -19,7 +19,7 @@ export async function generateUniqueCode(supabase: SupabaseClient, attempts = 5)
   throw new Error("Could not generate a unique discount code after several attempts.");
 }
 
-// Many codes at once with a single lookup per round, instead of one query per code.
+// Many codes at once with a few lookups per round, instead of one query per code.
 export async function generateUniqueCodes(supabase: SupabaseClient, count: number): Promise<string[]> {
   const result = new Set<string>();
   for (let round = 0; round < 5 && result.size < count; round++) {
@@ -28,8 +28,14 @@ export async function generateUniqueCodes(supabase: SupabaseClient, count: numbe
       const c = randomCode();
       if (!result.has(c)) candidates.add(c);
     }
-    const { data } = await supabase.from("discount_codes").select("code").in("code", [...candidates]);
-    const taken = new Set((data ?? []).map((r) => r.code));
+    // Checked 200 at a time, so the request never gets too long.
+    const list = [...candidates];
+    const taken = new Set<string>();
+    for (let i = 0; i < list.length; i += 200) {
+      const { data, error } = await supabase.from("discount_codes").select("code").in("code", list.slice(i, i + 200));
+      if (error) throw new Error(error.message);
+      for (const r of data ?? []) taken.add(r.code);
+    }
     for (const c of candidates) if (!taken.has(c)) result.add(c);
   }
   if (result.size < count) throw new Error("Could not generate enough unique discount codes.");

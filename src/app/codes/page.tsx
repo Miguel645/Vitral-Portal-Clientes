@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { codeStatus, tagClass, type StatusKey } from "./status";
+import { codeStatus, tagClass } from "./status";
 import Notice from "@/app/_components/Notice";
+import Pager, { PAGE_SIZE, pageFromParam } from "@/app/_components/Pager";
 import DeleteMenu from "@/app/_components/DeleteMenu";
 import { deleteCode } from "./actions";
 import { formatDate, lisbonToday } from "@/lib/date";
@@ -32,22 +34,31 @@ const FILTERS: { key: string; label: string; empty: string }[] = [
 export default async function CodesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; message?: string }>;
+  searchParams: Promise<{ filter?: string; page?: string; message?: string }>;
 }) {
-  const { filter = "all", message } = await searchParams;
+  const { filter = "all", page: pageParam, message } = await searchParams;
+  const page = pageFromParam(pageParam);
   const supabase = await createClient();
   const today = lisbonToday();
-
-  const { data } = await supabase
-    .from("discount_codes")
-    .select("id, code, kind, percent, amount_eur, note, valid_from, valid_to, used_at, client_id, clients(name)")
-    .order("created_at", { ascending: false });
-
-  const rows = ((data ?? []) as unknown as Row[]).map((r) => ({ ...r, status: codeStatus(r, today) }));
-
   const activeFilter = FILTERS.some((f) => f.key === filter) ? filter : "all";
-  const filtered =
-    activeFilter === "all" ? rows : rows.filter((r) => r.status.key === (activeFilter as StatusKey));
+
+  // The status filter runs in the database (same rules as codeStatus), 100 vales per page.
+  let query = supabase
+    .from("discount_codes")
+    .select("id, code, kind, percent, amount_eur, note, valid_from, valid_to, used_at, client_id, clients(name)", {
+      count: "exact",
+    });
+  if (activeFilter === "used") query = query.not("used_at", "is", null);
+  if (activeFilter === "active") query = query.is("used_at", null).lte("valid_from", today).gte("valid_to", today);
+  if (activeFilter === "expired") query = query.is("used_at", null).lt("valid_to", today);
+  const { data, count, error } = await query
+    .order("created_at", { ascending: false })
+    .order("id")
+    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+  // A page number past the end (e.g. after deleting vales): back to the first page.
+  if (error && page > 1) redirect(`/codes?filter=${activeFilter}`);
+
+  const filtered = ((data ?? []) as unknown as Row[]).map((r) => ({ ...r, status: codeStatus(r, today) }));
 
   return (
     <main className="page-wide">
@@ -100,6 +111,8 @@ export default async function CodesPage({
           ))}
         </ul>
       )}
+
+      <Pager page={page} total={count ?? filtered.length} href={(p) => `/codes?filter=${activeFilter}${p > 1 ? `&page=${p}` : ""}`} />
     </main>
   );
 }

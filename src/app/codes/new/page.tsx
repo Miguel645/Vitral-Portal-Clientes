@@ -15,7 +15,15 @@ export default async function NewValesPage({
   const supabase = await createClient();
   const today = lisbonToday();
 
-  const { data } = await supabase.from("clients").select("id, name, phone, consent").order("name");
+  // Only counts here; the client search box asks the database as you type.
+  const [{ count: total }, { count: consenting }, { data: first }, { data: preselected }] = await Promise.all([
+    supabase.from("clients").select("id", { count: "exact", head: true }),
+    supabase.from("clients").select("id", { count: "exact", head: true }).eq("consent", true),
+    supabase.from("clients").select("name").order("name").limit(1),
+    client && /^[0-9a-f-]{36}$/i.test(client)
+      ? supabase.from("clients").select("id, name, phone, consent").eq("id", client).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
   return (
     <main className="page-medium">
@@ -24,8 +32,10 @@ export default async function NewValesPage({
       </header>
 
       <NewValesForm
-        clients={data ?? []}
-        preselectedId={client}
+        totalClients={total ?? 0}
+        consentingClients={consenting ?? 0}
+        firstClientName={first?.[0]?.name ?? null}
+        preselected={preselected ?? undefined}
         today={today}
         defaultValidTo={addDays(today, 30)}
         appUrl={unsubscribeBaseUrl()}

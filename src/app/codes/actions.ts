@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { generateUniqueCodes } from "@/lib/codes";
+import { fetchAll } from "@/lib/fetchAll";
+import { clientSearchFilter } from "@/lib/clientSearch";
 import { formatDiscount } from "@/lib/discount";
 import { formatDate, INVALID_DATE, parseDisplayDate } from "@/lib/date";
 import { isSimulation, sendSms } from "@/lib/messaging";
@@ -64,10 +66,29 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
   }
 
   const supabase = await createClient();
-  const { data: allClients } = await supabase
-    .from("clients")
-    .select("id, name, phone, consent, short_token");
-  const clients = (allClients ?? []).filter((c) => target === "all" || pickedIds.has(c.id));
+  type Recipient = { id: string; name: string; phone: string; consent: boolean; short_token: string };
+  let clients: Recipient[];
+  try {
+    if (target === "all") {
+      clients = await fetchAll<Recipient>((from, to) =>
+        supabase.from("clients").select("id, name, phone, consent, short_token").order("id").range(from, to)
+      );
+    } else {
+      // In groups of 200 ids, so the request never gets too long.
+      const ids = [...pickedIds];
+      clients = [];
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data, error } = await supabase
+          .from("clients")
+          .select("id, name, phone, consent, short_token")
+          .in("id", ids.slice(i, i + 200));
+        if (error) throw new Error(error.message);
+        clients.push(...(data ?? []));
+      }
+    }
+  } catch {
+    return { error: "Não foi possível ler a lista de clientes. Tente novamente." };
+  }
 
   if (clients.length === 0) {
     return { error: "Não foi encontrado nenhum cliente. Atualize a página e tente novamente." };
@@ -76,7 +97,12 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
   const discount =
     discountType === "percent" ? { percent: value, amount_eur: null } : { percent: null, amount_eur: Math.round(value * 100) / 100 };
 
-  const codes = await generateUniqueCodes(supabase, clients.length * perClient);
+  let codes: string[];
+  try {
+    codes = await generateUniqueCodes(supabase, clients.length * perClient);
+  } catch {
+    return { error: "Não foi possível criar os vales. Tente novamente." };
+  }
   const codesByClient = new Map<string, string[]>();
   const rows = clients.flatMap((c, i) => {
     const mine = codes.slice(i * perClient, (i + 1) * perClient);
@@ -154,6 +180,23 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
   }
 
   redirect(`/codes?message=${encodeURIComponent(parts.join(" "))}`);
+}
+
+// The client search box on "Criar vales": up to `limit` clients matching the text
+// (name, email or phone digits), leaving out the ones already picked.
+export async function searchClients(
+  term: string,
+  exclude: string[],
+  limit: number
+): Promise<{ clients: { id: string; name: string; phone: string; consent: boolean }[]; total: number }> {
+  const filter = clientSearchFilter(term);
+  if (!filter) return { clients: [], total: 0 };
+  const supabase = await createClient();
+  let query = supabase.from("clients").select("id, name, phone, consent", { count: "exact" }).or(filter);
+  const ids = exclude.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  if (ids.length > 0) query = query.not("id", "in", `(${ids.join(",")})`);
+  const { data, count } = await query.order("name").limit(Math.min(Math.max(limit, 1), 50));
+  return { clients: data ?? [], total: count ?? 0 };
 }
 
 export async function markCodeUsed(formData: FormData) {

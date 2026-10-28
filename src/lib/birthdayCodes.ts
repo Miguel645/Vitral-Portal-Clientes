@@ -1,5 +1,6 @@
 import { createAdminClient } from "./supabase/admin";
 import { generateUniqueCode } from "./codes";
+import { fetchAll } from "./fetchAll";
 import { lisbonToday, addDays, isLeapYear, formatDate } from "./date";
 import { formatDiscount } from "./discount";
 import { sendSms } from "./messaging";
@@ -24,17 +25,22 @@ export async function runBirthdayCheck(): Promise<{ created: number; smsSent: nu
 
   if (!settings || !settings.active) return { created: 0, smsSent: 0, smsFailed: 0 };
 
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("id, name, phone, consent, birth_date, short_token")
-    .eq("consent", true)
-    .not("birth_date", "is", null);
+  type Client = { id: string; name: string; phone: string; consent: boolean; birth_date: string | null; short_token: string };
+  const clients = await fetchAll<Client>((from, to) =>
+    supabase
+      .from("clients")
+      .select("id, name, phone, consent, birth_date, short_token")
+      .eq("consent", true)
+      .not("birth_date", "is", null)
+      .order("id")
+      .range(from, to)
+  );
 
   let created = 0;
   let smsSent = 0;
   let smsFailed = 0;
 
-  for (const client of clients ?? []) {
+  for (const client of clients) {
     if (!client.birth_date) continue;
     const [, bm, bd] = client.birth_date.split("-").map(Number);
 
