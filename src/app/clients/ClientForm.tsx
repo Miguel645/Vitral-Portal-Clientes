@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { saveClient, type ClientFormState } from "../actions";
+import DateInput from "@/app/_components/DateInput";
 
 export type ClientValues = {
   id?: string;
@@ -85,8 +86,14 @@ export default function ClientForm({ client }: { client?: ClientValues }) {
       </label>
       <label>
         Data de nascimento (opcional)
-        <input type="date" name="birth_date" defaultValue={birth} aria-describedby="birth-hint" />
-        <span className="hint" id="birth-hint">Para o vale de aniversário.</span>
+        <DateInput
+          id="birth"
+          name="birth_date"
+          defaultValue={birth}
+          hint="Para o vale de aniversário."
+          error={fieldError("birth_date")}
+          autoFocus={state.field === "birth_date"}
+        />
       </label>
       <label className="check">
         <input type="checkbox" name="consent" defaultChecked={consent} aria-describedby="consent-hint" />

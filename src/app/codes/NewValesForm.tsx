@@ -3,7 +3,8 @@
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { createVales, type CreateValesState } from "./actions";
 import { formatDiscount } from "@/lib/discount";
-import { formatDate } from "@/lib/date";
+import { formatDate, parseDisplayDate } from "@/lib/date";
+import DateInput from "@/app/_components/DateInput";
 import { formatPhone } from "@/lib/phone";
 import { clientFirstName, composeValeMessage, countSmsParts, PREVIEW_TOKEN } from "@/lib/smsText";
 
@@ -41,8 +42,9 @@ export default function NewValesForm({
 
   const [discountType, setDiscountType] = useState<"percent" | "amount">("percent");
   const [value, setValue] = useState("");
-  const [validFrom, setValidFrom] = useState(today);
-  const [validTo, setValidTo] = useState(defaultValidTo);
+  // What's typed in the two date boxes (dd/mm/aaaa).
+  const [validFrom, setValidFrom] = useState(formatDate(today));
+  const [validTo, setValidTo] = useState(formatDate(defaultValidTo));
   const [note, setNote] = useState("");
   const [perClient, setPerClient] = useState("1");
   const [target, setTarget] = useState<"pick" | "all">("pick");
@@ -126,6 +128,14 @@ export default function NewValesForm({
       ? formatDiscount(discountType === "percent" ? { percent: numericValue, amount_eur: null } : { percent: null, amount_eur: numericValue })
       : discountType === "percent" ? "10%" : "5,00 €";
 
+  const validFromIso = parseDisplayDate(validFrom);
+  const validToIso = parseDisplayDate(validTo);
+  // Checked as soon as both dates are complete, not only when saving.
+  const orderError =
+    validFromIso && validToIso && validToIso < validFromIso
+      ? "A data “Válido até” tem de ser igual ou depois de “Válido a partir de”."
+      : undefined;
+
   const previewName = clientFirstName(targets[0]?.name ?? "Maria");
   const preview = composeValeMessage(
     smsText,
@@ -133,7 +143,7 @@ export default function NewValesForm({
       firstName: previewName,
       codes: PREVIEW_CODES.slice(0, perClientNum),
       discount: discountText,
-      validTo: validTo ? formatDate(validTo) : "",
+        validTo: validToIso ? formatDate(validToIso) : "[validade]",
     },
     appUrl,
     PREVIEW_TOKEN
@@ -181,21 +191,27 @@ export default function NewValesForm({
         <h2>Validade</h2>
         <label>
           Válido a partir de
-          <input type="date" name="valid_from" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} required />
-          <span className="hint">Primeiro dia em que o vale pode ser usado.</span>
+          <DateInput
+            id="valid-from"
+            name="valid_from"
+            defaultValue={today}
+            hint="Primeiro dia em que o vale pode ser usado."
+            error={state.field === "valid_from" ? state.error : undefined}
+            onChange={setValidFrom}
+            required
+          />
         </label>
         <label>
           Válido até
-          <input
-            type="date"
+          <DateInput
+            id="valid-to"
             name="valid_to"
-            value={validTo}
-            min={validFrom || undefined}
-            onChange={(e) => setValidTo(e.target.value)}
+            defaultValue={defaultValidTo}
+            hint="Último dia em que o vale pode ser usado."
+            error={orderError ?? (state.field === "valid_to" ? state.error : undefined)}
+            onChange={setValidTo}
             required
-            {...invalid("valid_to")}
           />
-          <span className="hint">Último dia em que o vale pode ser usado.</span>
         </label>
       </div>
 

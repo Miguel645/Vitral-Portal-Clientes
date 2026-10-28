@@ -4,21 +4,20 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { generateUniqueCodes } from "@/lib/codes";
 import { formatDiscount } from "@/lib/discount";
-import { formatDate } from "@/lib/date";
+import { formatDate, INVALID_DATE, parseDisplayDate } from "@/lib/date";
 import { sendSms } from "@/lib/sms";
 import { safeBack } from "./status";
 import { clientFirstName, composeValeMessage } from "@/lib/smsText";
 
 // `field` names the form field the error is about, so it can be marked and read out with it.
-export type CreateValesState = { error?: string; field?: "value" | "valid_to" | "per_client" | "clients" | "sms_text" };
-
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+export type CreateValesState = { error?: string; field?: "value" | "valid_from" | "valid_to" | "per_client" | "clients" | "sms_text" };
 
 export async function createVales(_prev: CreateValesState, formData: FormData): Promise<CreateValesState> {
   const discountType = String(formData.get("discount_type") ?? "");
   const value = Number(String(formData.get("value") ?? "").trim().replace(",", "."));
-  const validFrom = String(formData.get("valid_from") ?? "");
-  const validTo = String(formData.get("valid_to") ?? "");
+  // Typed as dd/mm/aaaa, stored as ISO dates.
+  const validFrom = parseDisplayDate(String(formData.get("valid_from") ?? ""));
+  const validTo = parseDisplayDate(String(formData.get("valid_to") ?? ""));
   const note = String(formData.get("note") ?? "").trim();
   const perClient = Number(String(formData.get("per_client") ?? "1"));
   const target = String(formData.get("target") ?? "");
@@ -35,9 +34,8 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
   if (discountType === "amount" && (!Number.isFinite(value) || value <= 0 || value > 10000)) {
     return { error: "Indique um valor em euros maior que zero.", field: "value" };
   }
-  if (!ISO_DATE.test(validFrom) || !ISO_DATE.test(validTo)) {
-    return { error: "Indique as duas datas de validade e tente novamente.", field: "valid_to" };
-  }
+  if (!validFrom) return { error: INVALID_DATE, field: "valid_from" };
+  if (!validTo) return { error: INVALID_DATE, field: "valid_to" };
   if (validFrom > validTo) {
     return { error: "A data “Válido até” tem de ser igual ou depois de “Válido a partir de”.", field: "valid_to" };
   }
