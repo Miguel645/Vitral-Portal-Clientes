@@ -29,7 +29,7 @@ export default async function CampaignPage({
   const supabase = await createClient();
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, name, sms_text, status, vale_percent, vale_amount_eur, vale_valid_from, vale_valid_to, sent_at, live_until, stopped_at")
+    .select("id, name, sms_text, status, vale_percent, vale_amount_eur, vale_valid_from, vale_valid_to, sent_at, starts_on, live_until, stopped_at")
     .eq("id", id)
     .maybeSingle();
   if (!campaign) notFound();
@@ -43,12 +43,17 @@ export default async function CampaignPage({
     </header>
   );
 
-  if (campaign.status === "draft") {
+  if (campaign.status === "draft" || campaign.status === "scheduled") {
     const editor = await loadEditorData();
     return (
       <main className="page-medium">
         {header}
         <Notice message={message} />
+        {campaign.status === "scheduled" && campaign.starts_on ? (
+          <p className="notice" role="status">
+            Agendada: vai ser enviada a {formatDate(campaign.starts_on)}, às 10h. “Guardar rascunho” cancela o agendamento.
+          </p>
+        ) : null}
         {appUrlError() ? <p className="err" role="alert">{appUrlError()}</p> : null}
         <CampaignEditor {...editor} campaign={campaign} />
       </main>
