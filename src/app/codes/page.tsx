@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { codeStatus, tagClass, type StatusKey } from "./status";
 import Notice from "@/app/_components/Notice";
+import DeleteMenu from "@/app/_components/DeleteMenu";
+import { deleteCode } from "./actions";
 import { formatDate, lisbonToday } from "@/lib/date";
 import { formatDiscount, KIND_LABEL } from "@/lib/discount";
 
@@ -85,7 +87,14 @@ export default async function CodesPage({
                 {!c.used_at ? (
                   <Link href={`/codes/${c.id}/use`} className="btn">Marcar como usado</Link>
                 ) : null}
-                <Link href={`/codes/${c.id}/delete`} className="btn danger">Eliminar vale</Link>
+                <DeleteMenu
+                  menuLabel={`Mais ações para o vale ${c.code}`}
+                  itemLabel="Eliminar vale"
+                  title={`Eliminar o vale ${c.code}?`}
+                  description="Não é possível desfazer."
+                  action={deleteCode}
+                  fields={{ id: c.id, code: c.code }}
+                />
               </div>
             </li>
           ))}

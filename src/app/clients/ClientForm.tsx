@@ -102,11 +102,6 @@ export default function ClientForm({ client }: { client?: ClientValues }) {
           {pending ? "A guardar…" : "Guardar cliente"}
         </button>
       </div>
-      {client?.id ? (
-        <div className="danger-zone">
-          <Link href={`/clients/${client.id}/delete`} className="btn danger">Eliminar cliente</Link>
-        </div>
-      ) : null}
     </form>
   );
 }

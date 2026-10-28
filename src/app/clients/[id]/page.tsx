@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import ClientForm from "../ClientForm";
 import CopyButton from "@/app/_components/CopyButton";
 import Notice from "@/app/_components/Notice";
+import DeleteMenu from "@/app/_components/DeleteMenu";
+import { deleteClient } from "../../actions";
 import { formatDate } from "@/lib/date";
 import { formatDiscount, KIND_LABEL } from "@/lib/discount";
 import { codeStatus, tagClass } from "../../codes/status";
@@ -50,6 +52,14 @@ export default async function EditClientPage({
           <Link className="navlink" href="/">Voltar aos clientes</Link>
           <h1>{client.name}</h1>
         </div>
+        <DeleteMenu
+          menuLabel={`Mais ações para o cliente ${client.name}`}
+          itemLabel="Eliminar cliente"
+          title={`Eliminar o cliente ${client.name}?`}
+          description="Não é possível desfazer. Os vales deste cliente continuam na lista de vales, mas sem cliente."
+          action={deleteClient}
+          fields={{ id: client.id, name: client.name }}
+        />
       </header>
 
       <Notice message={message} />
