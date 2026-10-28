@@ -21,7 +21,8 @@ export type CampaignState = { error?: string; field?: CampaignField; ok?: string
 type Intent = "save" | "test" | "send";
 
 // What's saved: the message and vale, plus "Início" (sent that day, at 10:00 when it's
-// later than today) and "Fim" (new clients get it every day until then).
+// later than today) and "Fim" (until then, the 10:00 job finishes a send that stopped
+// half-way).
 type SavedRow = CampaignRow & { starts_on: string; live_until: string };
 
 
@@ -41,7 +42,7 @@ function parse(formData: FormData): { error: string; field?: CampaignField } | {
   if (!liveUntil) return { error: INVALID_DATE, field: "live_until" };
   if (liveUntil < startsOn) return { error: "O fim tem de ser igual ou depois do início.", field: "live_until" };
   if (row.vale_valid_to && liveUntil > row.vale_valid_to) {
-    return { error: "O fim não pode ser depois de “Válido até” do vale: os clientes novos receberiam um vale já expirado.", field: "live_until" };
+    return { error: "O fim não pode ser depois de “Válido até” do vale: quem a recebesse no fim receberia um vale já expirado.", field: "live_until" };
   }
   return { row: { ...row, starts_on: startsOn, live_until: liveUntil } };
 }
@@ -196,8 +197,8 @@ async function sendToAll(
   row: CampaignRow
 ): Promise<{ message: string } | { error: string }> {
   const startedAt = Date.now();
-  // Taken before the client list is read: anyone added after this is a "new client"
-  // for the daily job, so nobody added during the send is missed.
+  // Taken before the client list is read: when the daily job finishes this send, clients
+  // who switched messages on after this are left out.
   const firstSentAt = new Date(startedAt).toISOString();
   const urlError = appUrlError();
   if (urlError) return { error: urlError };
@@ -211,7 +212,6 @@ async function sendToAll(
   if (recipients.length === 0) return { error: "Nenhum cliente quer receber mensagens. Nada foi enviado." };
 
   // Mark it as sent first, so a double tap (or a second tab) can never send it twice.
-  // first_sent_at: clients added after this are the "new clients" of a live campaign.
   const { data: claimed } = await supabase
     .from("campaigns")
     .update({ status: "sent", sent_at: new Date().toISOString(), first_sent_at: firstSentAt })
@@ -274,7 +274,7 @@ export async function resumeCampaign(formData: FormData) {
   back("error" in result ? result.error : result.message);
 }
 
-// "Parar envio a clientes novos" on a live campaign's summary.
+// "Parar campanha" on a live campaign's summary: the daily job no longer finishes its send.
 export async function stopCampaign(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!/^[0-9a-f-]{36}$/i.test(id)) redirect("/campaigns");
@@ -286,7 +286,7 @@ export async function stopCampaign(formData: FormData) {
     .is("stopped_at", null)
     .select("id");
   const message = data?.length
-    ? "Campanha parada: os clientes novos já não a vão receber."
+    ? "Campanha parada: já não é enviada a mais ninguém."
     : "Não foi possível parar a campanha. Atualize a página e tente novamente.";
   redirect(`/campaigns/${id}?message=${encodeURIComponent(message)}`);
 }

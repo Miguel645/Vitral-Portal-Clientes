@@ -12,9 +12,10 @@ export type LiveResult = { error?: string; campaigns: number; clients: number; m
 // 1. Scheduled campaigns whose "Início" has come are sent to every client who receives
 //    messages, like "Enviar campanha". If nothing could be sent, it goes back to
 //    scheduled and is tried again the next day.
-// 2. Every live campaign (sent, not stopped, "Fim" today or later) goes to the clients
-//    who receive messages and haven't got it yet: those added since it was first sent,
-//    and those a first send didn't reach in time (see pendingRecipients). Anyone not
+// 2. Every live campaign (sent, not stopped, "Fim" today or later) whose send stopped
+//    half-way (time limit) is finished: clients who existed when it was created and
+//    received messages when it was first sent, and haven't got it yet. Clients added
+//    after a campaign was created never get it (see pendingRecipients). Anyone not
 //    reached in time gets it the next day.
 // A campaign that fails is reported and the others still go out.
 export async function runLiveCampaigns(): Promise<LiveResult> {

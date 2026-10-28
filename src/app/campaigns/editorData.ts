@@ -6,13 +6,16 @@ import { clientFirstName } from "@/lib/smsText";
 import { previewBaseUrl } from "@/lib/optOut";
 import { addDays, lisbonToday } from "@/lib/date";
 
-// What CampaignEditor needs besides the campaign itself.
-export async function loadEditorData() {
+// What CampaignEditor needs besides the campaign itself. `createdBefore`: a saved
+// campaign's created_at, since clients added after it never get it (pendingRecipients).
+export async function loadEditorData(createdBefore?: string) {
   const supabase = await createClient();
   // Every client who receives messages, 1,000 at a time (for the totals before sending).
-  const data = await fetchAll<{ name: string; phone: string; short_token: string }>((from, to) =>
-    supabase.from("clients").select("name, phone, short_token").eq("consent", true).order("name").order("id").range(from, to)
-  );
+  const data = await fetchAll<{ name: string; phone: string; short_token: string }>((from, to) => {
+    let query = supabase.from("clients").select("name, phone, short_token").eq("consent", true);
+    if (createdBefore) query = query.lt("created_at", createdBefore);
+    return query.order("name").order("id").range(from, to);
+  });
   const clients = data.map((c) => ({ ...c, valid: normalizePhone(c.phone).ok }));
   const first = clients.find((c) => c.valid);
   const today = lisbonToday();

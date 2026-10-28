@@ -149,7 +149,7 @@ export default function CampaignEditor({
     startsOnIso && liveUntilIso && liveUntilIso < startsOnIso
       ? "O fim tem de ser igual ou depois do início."
       : withVale && liveUntilIso && validToIso && liveUntilIso > validToIso
-        ? "O fim não pode ser depois de “Válido até” do vale: os clientes novos receberiam um vale já expirado."
+        ? "O fim não pode ser depois de “Válido até” do vale: quem a recebesse no fim receberia um vale já expirado."
         : undefined;
   // Starting later: "Agendar campanha" instead of sending now.
   const later = !!startsOnIso && startsOnIso > today;
@@ -346,7 +346,7 @@ export default function CampaignEditor({
             id="live-until"
             name="live_until"
             defaultValue={liveUntilText}
-            hint="Até este dia, os clientes novos que recebem mensagens também a recebem, todos os dias às 10h."
+            hint="Último dia da campanha. Se o envio parar a meio, os clientes que faltam recebem-na às 10h até este dia."
             error={liveError ?? (state.field === "live_until" ? state.error : undefined)}
             onChange={(text) => {
               if (!liveTyped) {
@@ -399,11 +399,12 @@ export default function CampaignEditor({
           {sendable.length} {sendable.length === 1 ? "cliente vai receber" : "clientes vão receber"} esta mensagem.
         </p>
         <p className="meta" style={{ marginBottom: "var(--sp-16)" }}>
-          Só os clientes que recebem mensagens.
+          Só os clientes que recebem mensagens e já existem: quem for adicionado depois de a campanha ser criada não a
+          recebe.
           {invalidCount > 0
             ? ` ${invalidCount} ${invalidCount === 1 ? "tem" : "têm"} um número inválido e ${invalidCount === 1 ? "fica" : "ficam"} de fora.`
             : ""}
-          {later ? " Contados hoje: no dia do envio podem ser mais." : ""}
+          {later ? " Contados hoje." : ""}
         </p>
         {generalError(["save", "send"])}
 
@@ -426,9 +427,7 @@ export default function CampaignEditor({
                 </li>
               ) : null}
               {later && startsOnIso ? <li>Vai ser enviada a {formatDate(startsOnIso)}, às 10h</li> : null}
-              {liveUntilIso ? (
-                <li>Os clientes novos também a recebem, todos os dias às 10h, até {formatDate(liveUntilIso)}</li>
-              ) : null}
+              <li>Clientes adicionados depois de a campanha ser criada não a recebem</li>
               <li>Não é possível desfazer.</li>
             </ul>
           </div>
