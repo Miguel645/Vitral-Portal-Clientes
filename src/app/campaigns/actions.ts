@@ -9,10 +9,10 @@ import { appUrlError, unsubscribeBaseUrl } from "@/lib/optOut";
 import { randomString } from "@/lib/codes";
 import { pendingRecipients, RESUME_AFTER_MS, type Recipient } from "./recipients";
 import { deliver, type CampaignRow } from "./deliver";
-import { INVALID_DATE, parseDisplayDate } from "@/lib/date";
+import { INVALID_DATE, lisbonToday, parseDisplayDate } from "@/lib/date";
 import { composeCampaignMessage } from "@/lib/smsText";
 
-export type CampaignField = "name" | "sms_text" | "value" | "valid_from" | "valid_to" | "phone";
+export type CampaignField = "name" | "sms_text" | "value" | "valid_from" | "valid_to" | "live_until" | "phone";
 
 // `intent` says which button was pressed, so its result shows next to it.
 // `savedId`: a new campaign was saved as a draft before sending failed, so the next try updates it.
@@ -20,12 +20,30 @@ export type CampaignState = { error?: string; field?: CampaignField; ok?: string
 
 type Intent = "save" | "test" | "send";
 
+// What's saved: the message and vale, plus until when new clients also get it.
+type SavedRow = CampaignRow & { live_until: string | null };
+
 
 // Shown in a test SMS instead of a real vale code. It has a "1", which real codes
 // never have, so it can never match a real vale.
 const TEST_VALE = "TESTE123";
 
-function parse(formData: FormData): { error: string; field?: CampaignField } | { row: CampaignRow } {
+function parse(formData: FormData): { error: string; field?: CampaignField } | { row: SavedRow } {
+  const parsed = parseMessage(formData);
+  if ("error" in parsed) return parsed;
+  const { row } = parsed;
+  if (formData.get("live") !== "on") return { row: { ...row, live_until: null } };
+
+  const liveUntil = parseDisplayDate(String(formData.get("live_until") ?? ""));
+  if (!liveUntil) return { error: INVALID_DATE, field: "live_until" };
+  if (liveUntil < lisbonToday()) return { error: "A data tem de ser hoje ou depois.", field: "live_until" };
+  if (row.vale_valid_to && liveUntil > row.vale_valid_to) {
+    return { error: "A data não pode ser depois de “Válido até” do vale: os clientes novos receberiam um vale já expirado.", field: "live_until" };
+  }
+  return { row: { ...row, live_until: liveUntil } };
+}
+
+function parseMessage(formData: FormData): { error: string; field?: CampaignField } | { row: CampaignRow } {
   const name = String(formData.get("name") ?? "").trim();
   const smsText = String(formData.get("sms_text") ?? "").trim();
   const withVale = formData.get("with_vale") === "on";
@@ -85,7 +103,7 @@ function parse(formData: FormData): { error: string; field?: CampaignField } | {
 }
 
 // Creates the campaign, or updates it while it's still a draft. Returns its id.
-async function saveDraft(supabase: SupabaseClient, id: string, row: CampaignRow): Promise<string | null> {
+async function saveDraft(supabase: SupabaseClient, id: string, row: SavedRow): Promise<string | null> {
   if (id) {
     const { data } = await supabase.from("campaigns").update(row).eq("id", id).eq("status", "draft").select("id");
     return data?.[0]?.id ?? null;
@@ -170,9 +188,11 @@ async function sendToAll(
   if (recipients.length === 0) return { error: "Nenhum cliente quer receber mensagens. Nada foi enviado." };
 
   // Mark it as sent first, so a double tap (or a second tab) can never send it twice.
+  // first_sent_at: clients added after this are the "new clients" of a live campaign.
+  const now = new Date().toISOString();
   const { data: claimed } = await supabase
     .from("campaigns")
-    .update({ status: "sent", sent_at: new Date().toISOString() })
+    .update({ status: "sent", sent_at: now, first_sent_at: now })
     .eq("id", id)
     .eq("status", "draft")
     .select("id");
@@ -181,7 +201,7 @@ async function sendToAll(
   const result = await deliver(supabase, id, row, recipients, startedAt);
   if ("error" in result && result.nothingSent) {
     // Nothing was created or sent: put the campaign back to draft so it can be tried again.
-    await supabase.from("campaigns").update({ status: "draft", sent_at: null }).eq("id", id);
+    await supabase.from("campaigns").update({ status: "draft", sent_at: null, first_sent_at: null }).eq("id", id);
   }
   return result;
 }
@@ -230,4 +250,21 @@ export async function resumeCampaign(formData: FormData) {
 
   const result = await deliver(supabase, id, campaign as CampaignRow, recipients, startedAt);
   back("error" in result ? result.error : result.message);
+}
+
+// "Parar envio a clientes novos" on a live campaign's summary.
+export async function stopCampaign(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) redirect("/campaigns");
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("campaigns")
+    .update({ stopped_at: new Date().toISOString() })
+    .eq("id", id)
+    .is("stopped_at", null)
+    .select("id");
+  const message = data?.length
+    ? "Campanha parada: os clientes novos já não a vão receber."
+    : "Não foi possível parar a campanha. Atualize a página e tente novamente.";
+  redirect(`/campaigns/${id}?message=${encodeURIComponent(message)}`);
 }

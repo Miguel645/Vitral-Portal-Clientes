@@ -2,14 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Notice from "@/app/_components/Notice";
-import { formatDate, formatDateTime } from "@/lib/date";
+import { formatDate, formatDateTime, lisbonToday } from "@/lib/date";
 import { formatDiscount } from "@/lib/discount";
 import { isSimulation } from "@/lib/messaging/mode";
 import CampaignEditor from "../CampaignEditor";
 import { loadEditorData } from "../editorData";
 import { appUrlError } from "@/lib/optOut";
 import { pendingRecipients, RESUME_AFTER_MS } from "../recipients";
-import { resumeCampaign } from "../actions";
+import { resumeCampaign, stopCampaign } from "../actions";
 import SubmitButton from "@/app/_components/SubmitButton";
 
 // "Enviar campanha" sends one SMS per client in small groups, which can take a while.
@@ -29,7 +29,7 @@ export default async function CampaignPage({
   const supabase = await createClient();
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, name, sms_text, status, vale_percent, vale_amount_eur, vale_valid_from, vale_valid_to, sent_at")
+    .select("id, name, sms_text, status, vale_percent, vale_amount_eur, vale_valid_from, vale_valid_to, sent_at, live_until, stopped_at")
     .eq("id", id)
     .maybeSingle();
   if (!campaign) notFound();
@@ -83,6 +83,7 @@ export default async function CampaignPage({
   const canResume = pending > 0 && !!campaign.sent_at && Date.now() - new Date(campaign.sent_at).getTime() >= RESUME_AFTER_MS;
   const simulatedOnly = simulated > 0 && sent === 0;
   const hasVale = campaign.vale_valid_from && campaign.vale_valid_to;
+  const isLive = !campaign.stopped_at && !!campaign.live_until && campaign.live_until >= lisbonToday();
 
   return (
     <main className="page-medium">
@@ -121,6 +122,16 @@ export default async function CampaignPage({
           <p className="preview-title">Texto do SMS</p>
           <p className="meta" style={{ whiteSpace: "pre-wrap" }}>{campaign.sms_text}</p>
         </div>
+        {isLive ? (
+          <p className="meta">
+            Ativa: os clientes novos que recebem mensagens recebem-na todos os dias às 10h, até{" "}
+            {formatDate(campaign.live_until!)}.
+          </p>
+        ) : campaign.stopped_at ? (
+          <p className="meta">Parada em {formatDateTime(campaign.stopped_at)}: os clientes novos já não a recebem.</p>
+        ) : campaign.live_until ? (
+          <p className="meta">Terminou a {formatDate(campaign.live_until)}: os clientes novos já não a recebem.</p>
+        ) : null}
         {pending > 0 && !canResume ? (
           <p className="meta">O envio pode ainda estar a decorrer. Atualize a página daqui a um minuto.</p>
         ) : null}
@@ -133,6 +144,12 @@ export default async function CampaignPage({
             </form>
           ) : null}
           <Link href={`/campaigns/log?campaign=${campaign.id}`} className="btn">Ver histórico de envios</Link>
+          {isLive ? (
+            <form action={stopCampaign}>
+              <input type="hidden" name="id" value={campaign.id} />
+              <SubmitButton className="btn" pendingText="A parar…">Parar envio a clientes novos</SubmitButton>
+            </form>
+          ) : null}
         </div>
       </div>
     </main>

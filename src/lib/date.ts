@@ -14,6 +14,14 @@ export function lisbonDate(moment: Date | string): string {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
+// The hour (0-23) a moment falls on in Lisbon, summer time included.
+export function lisbonHour(moment: Date | string = new Date()): number {
+  const hour = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Lisbon", hour: "2-digit", hourCycle: "h23" })
+    .formatToParts(new Date(moment))
+    .find((p) => p.type === "hour")!.value;
+  return Number(hour);
+}
+
 export function formatDate(iso: string) {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;

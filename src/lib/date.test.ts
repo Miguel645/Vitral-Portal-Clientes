@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isBirthdayOn, lisbonDate, parseDisplayDate } from "./date";
+import { isBirthdayOn, lisbonDate, lisbonHour, parseDisplayDate } from "./date";
 
 describe("parseDisplayDate", () => {
   it("turns dd/mm/aaaa into an ISO date", () => {
@@ -59,5 +59,16 @@ describe("lisbonDate", () => {
     expect(lisbonDate("2026-10-28T10:00:00Z")).toBe("2026-10-28");
     // 23:30 UTC on 30 June is already 1 July in Lisbon (summer time, UTC+1).
     expect(lisbonDate("2026-06-30T23:30:00Z")).toBe("2026-07-01");
+  });
+});
+
+describe("lisbonHour", () => {
+  it("follows Lisbon summer and winter time", () => {
+    // Summer (UTC+1): 09:15 UTC is 10:15 in Lisbon.
+    expect(lisbonHour("2026-07-01T09:15:00Z")).toBe(10);
+    // Winter (UTC+0): 10:15 UTC is 10:15 in Lisbon.
+    expect(lisbonHour("2026-12-01T10:15:00Z")).toBe(10);
+    expect(lisbonHour("2026-12-01T09:15:00Z")).toBe(9);
+    expect(lisbonHour("2026-12-01T00:30:00Z")).toBe(0);
   });
 });
