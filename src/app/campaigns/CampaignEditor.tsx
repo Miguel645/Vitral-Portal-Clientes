@@ -399,7 +399,7 @@ export default function CampaignEditor({
           {sendable.length} {sendable.length === 1 ? "cliente vai receber" : "clientes vão receber"} esta mensagem.
         </p>
         <p className="meta" style={{ marginBottom: "var(--sp-16)" }}>
-          Só os clientes que recebem mensagens e já existem: quem for adicionado depois de a campanha ser criada não a
+          Só os clientes que recebem mensagens e já existem no dia do início: quem for adicionado depois do envio não a
           recebe.
           {invalidCount > 0
             ? ` ${invalidCount} ${invalidCount === 1 ? "tem" : "têm"} um número inválido e ${invalidCount === 1 ? "fica" : "ficam"} de fora.`
@@ -427,7 +427,7 @@ export default function CampaignEditor({
                 </li>
               ) : null}
               {later && startsOnIso ? <li>Vai ser enviada a {formatDate(startsOnIso)}, às 10h</li> : null}
-              <li>Clientes adicionados depois de a campanha ser criada não a recebem</li>
+              <li>Clientes adicionados depois do envio não a recebem</li>
               <li>Não é possível desfazer.</li>
             </ul>
           </div>

@@ -30,7 +30,7 @@ export default async function CampaignPage({
   const supabase = await createClient();
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, name, sms_text, status, vale_percent, vale_amount_eur, vale_valid_from, vale_valid_to, sent_at, starts_on, live_until, stopped_at, created_at")
+    .select("id, name, sms_text, status, vale_percent, vale_amount_eur, vale_valid_from, vale_valid_to, sent_at, starts_on, live_until, stopped_at")
     .eq("id", id)
     .maybeSingle();
   if (!campaign) notFound();
@@ -57,7 +57,7 @@ export default async function CampaignPage({
   );
 
   if (campaign.status === "draft" || campaign.status === "scheduled") {
-    const editor = await loadEditorData(campaign.created_at);
+    const editor = await loadEditorData();
     return (
       <main className="page-medium">
         {header}
@@ -148,7 +148,7 @@ export default async function CampaignPage({
         {isLive ? (
           <p className="meta">
             Ativa até {formatDate(campaign.live_until!)}: se o envio parou a meio, os clientes que faltam recebem-na às
-            10h. Clientes adicionados depois de a campanha ser criada não a recebem.
+            10h. Clientes adicionados depois do envio não a recebem.
           </p>
         ) : campaign.stopped_at ? (
           <p className="meta">Parada em {formatDateTime(campaign.stopped_at)}: já não é enviada a mais ninguém.</p>

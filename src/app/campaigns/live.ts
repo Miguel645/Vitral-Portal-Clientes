@@ -13,9 +13,9 @@ export type LiveResult = { error?: string; campaigns: number; clients: number; m
 //    messages, like "Enviar campanha". If nothing could be sent, it goes back to
 //    scheduled and is tried again the next day.
 // 2. Every live campaign (sent, not stopped, "Fim" today or later) whose send stopped
-//    half-way (time limit) is finished: clients who existed when it was created and
-//    received messages when it was first sent, and haven't got it yet. Clients added
-//    after a campaign was created never get it (see pendingRecipients). Anyone not
+//    half-way (time limit) is finished: clients who existed and received messages when
+//    it was first sent, and haven't got it yet. Clients added after a campaign went out
+//    never get it (see pendingRecipients). Anyone not
 //    reached in time gets it the next day.
 // A campaign that fails is reported and the others still go out.
 export async function runLiveCampaigns(): Promise<LiveResult> {
@@ -84,7 +84,7 @@ export async function runLiveCampaigns(): Promise<LiveResult> {
 
     let recipients;
     try {
-      recipients = await pendingRecipients(supabase, campaign.id, campaign.first_sent_at);
+      recipients = await pendingRecipients(supabase, campaign.id, { finishing: true });
     } catch {
       result.messages.push(`${campaign.name}: Não foi possível ler a lista de clientes.`);
       continue;

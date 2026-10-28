@@ -205,7 +205,7 @@ async function sendToAll(
   // Only clients who want to receive messages, never anyone else (1,000 at a time).
   let recipients: Recipient[];
   try {
-    recipients = await pendingRecipients(supabase, id);
+    recipients = await pendingRecipients(supabase, id, { cutoff: firstSentAt });
   } catch {
     return { error: "Não foi possível ler a lista de clientes. Tente novamente." };
   }
