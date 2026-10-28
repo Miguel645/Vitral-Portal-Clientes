@@ -34,7 +34,7 @@ export default async function EditClientPage({
   const supabase = await createClient();
 
   const [{ data: client }, { data: codes }] = await Promise.all([
-    supabase.from("clients").select("id, name, phone, email, birth_date, consent").eq("id", id).maybeSingle(),
+    supabase.from("clients").select("id, name, phone, email, birth_date, consent, consent_at").eq("id", id).maybeSingle(),
     supabase
       .from("discount_codes")
       .select("id, code, kind, percent, amount_eur, note, valid_from, valid_to, used_at")
