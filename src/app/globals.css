@@ -268,6 +268,8 @@ label .err, .combo .err { display: block; margin: var(--sp-8) 0 0; font-weight: 
 .preview { background: var(--bg); border-radius: 8px; padding: var(--sp-16); margin-bottom: var(--sp-16); }
 .preview-title { font-weight: 600; margin: 0 0 var(--sp-8); }
 .preview p { margin: 0; }
+.summary { margin: 0 0 var(--sp-16); padding-left: var(--sp-24); }
+.summary li + li { margin-top: var(--sp-4); }
 .actions { display: flex; gap: var(--sp-16); justify-content: flex-end; flex-wrap: wrap; margin-top: var(--sp-12); }
 
 /* Destructive actions always live apart from Guardar/Cancelar */
