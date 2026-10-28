@@ -1,6 +1,7 @@
 {
   "crons": [
-    { "path": "/api/cron/birthdays", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/birthdays?utc=9", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/birthdays?utc=10", "schedule": "0 10 * * *" },
     { "path": "/api/cron/campaigns?utc=9", "schedule": "0 9 * * *" },
     { "path": "/api/cron/campaigns?utc=10", "schedule": "0 10 * * *" }
   ]
