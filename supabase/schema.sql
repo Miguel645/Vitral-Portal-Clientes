@@ -139,3 +139,65 @@ alter table public.discount_codes drop constraint if exists discount_codes_kind_
 update public.discount_codes set kind = 'manual' where kind in ('spend', 'promotion');
 alter table public.discount_codes add constraint discount_codes_kind_check
   check (kind in ('birthday', 'manual'));
+
+-- Short unsubscribe links (/u/<8 characters>). Same SQL as
+-- supabase/migrations/20261028_short_unsubscribe_token.sql; the old
+-- unsubscribe_token column stays so links already sent keep working.
+create or replace function public.random_short_token() returns text
+language plpgsql volatile
+set search_path = ''
+as $$
+declare
+  chars constant text := 'abcdefghijklmnopqrstuvwxyz0123456789';
+  bytes bytea := uuid_send(gen_random_uuid()) || uuid_send(gen_random_uuid());
+  result text := '';
+  i int;
+begin
+  foreach i in array array[0, 1, 2, 3, 4, 5, 16, 17] loop
+    result := result || substr(chars, 1 + (get_byte(bytes, i) % 36), 1);
+  end loop;
+  return result;
+end $$;
+
+alter table public.clients add column if not exists short_token text;
+
+-- Give every existing client a token, one at a time, retrying on the (very unlikely) clash.
+do $$
+declare
+  r record;
+  t text;
+begin
+  for r in select id from public.clients where short_token is null loop
+    loop
+      t := public.random_short_token();
+      exit when not exists (select 1 from public.clients where short_token = t);
+    end loop;
+    update public.clients set short_token = t where id = r.id;
+  end loop;
+end $$;
+
+-- New clients get one automatically when they're saved.
+create or replace function public.set_short_token() returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  t text;
+begin
+  if new.short_token is null then
+    loop
+      t := public.random_short_token();
+      exit when not exists (select 1 from public.clients where short_token = t);
+    end loop;
+    new.short_token := t;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists clients_set_short_token on public.clients;
+create trigger clients_set_short_token
+  before insert on public.clients
+  for each row execute function public.set_short_token();
+
+alter table public.clients alter column short_token set not null;
+create unique index if not exists clients_short_token_key on public.clients (short_token);

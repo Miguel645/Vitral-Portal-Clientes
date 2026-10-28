@@ -1,18 +1,17 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { clientFirstName } from "@/lib/smsText";
 import CampaignComposer from "../CampaignComposer";
 
-export default async function NewCampaignPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ message?: string; testOk?: string; testError?: string }>;
-}) {
-  const { message = "", testOk, testError } = await searchParams;
+// "Enviar a todos" sends one SMS per client, which can take a while.
+export const maxDuration = 60;
+
+export default async function NewCampaignPage() {
   const supabase = await createClient();
 
-  const { count } = await supabase
+  const { data } = await supabase
     .from("clients")
-    .select("id", { count: "exact", head: true })
+    .select("name")
     .eq("consent", true)
     .neq("phone", "");
 
@@ -23,11 +22,9 @@ export default async function NewCampaignPage({
       </header>
 
       <CampaignComposer
-        initialMessage={message}
-        recipientCount={count ?? 0}
+        recipientNames={(data ?? []).map((c) => clientFirstName(c.name))}
         appUrl={process.env.APP_URL ?? ""}
-        testOk={testOk}
-        testError={testError}
+        simulated={process.env.SMS_MODE !== "twilio"}
       />
 
       <p className="meta" style={{ textAlign: "center" }}>

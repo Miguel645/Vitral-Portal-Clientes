@@ -3,12 +3,13 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { normalizePhone, samePhone } from "@/lib/phone";
+import { INVALID_DATE, lisbonToday, parseDisplayDate } from "@/lib/date";
 
 export type ClientFields = { name: string; phone: string; email: string; birth_date: string; consent: boolean };
 
 export type ClientFormState = {
   error?: string;
-  field?: "name" | "phone" | "email";
+  field?: "name" | "phone" | "email" | "birth_date";
   // Name of another client who already has this phone number (asks to confirm once).
   duplicateOf?: string;
   values?: ClientFields;
@@ -19,21 +20,33 @@ function parse(formData: FormData) {
     name: String(formData.get("name") ?? "").trim(),
     phone: String(formData.get("phone") ?? "").trim(),
     email: String(formData.get("email") ?? "").trim(),
-    birth_date: String(formData.get("birth_date") ?? ""),
+    birth_date: String(formData.get("birth_date") ?? "").trim(),
     consent: formData.get("consent") === "on",
   };
+
+  // Typed as dd/mm/aaaa, stored as an ISO date.
+  const birthIso = values.birth_date ? parseDisplayDate(values.birth_date) : null;
 
   let error = "";
   let field: ClientFormState["field"];
   if (!values.name) {
-    error = "Indique o nome do cliente.";
+    error = "Escreva o nome do cliente.";
     field = "name";
+  } else if (!values.phone) {
+    error = "Escreva o telemóvel do cliente.";
+    field = "phone";
   } else if (!normalizePhone(values.phone).ok) {
-    error = "Indique um telemóvel de 9 dígitos começado por 9, ou um número estrangeiro começado por +.";
+    error = "O telemóvel tem de ter 9 dígitos e começar por 9 (ou começar por +, se for estrangeiro).";
     field = "phone";
   } else if (values.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.email)) {
     error = "Esse endereço de email não parece correto. Verifique e tente novamente.";
     field = "email";
+  } else if (values.birth_date && !birthIso) {
+    error = INVALID_DATE;
+    field = "birth_date";
+  } else if (birthIso && birthIso > lisbonToday()) {
+    error = "A data de nascimento não pode ser depois de hoje.";
+    field = "birth_date";
   }
 
   return {
@@ -44,7 +57,7 @@ function parse(formData: FormData) {
       name: values.name,
       phone: values.phone,
       email: values.email || null,
-      birth_date: values.birth_date || null,
+      birth_date: birthIso,
       consent: values.consent,
     },
   };

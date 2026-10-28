@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { saveClient, type ClientFormState } from "../actions";
+import DateInput from "@/app/_components/DateInput";
 
 export type ClientValues = {
   id?: string;
@@ -29,13 +30,14 @@ export default function ClientForm({ client }: { client?: ClientValues }) {
     [`${f}-hint`, fieldError(f) || extra ? `${f}-err` : ""].filter(Boolean).join(" ");
 
   return (
-    <form action={formAction} className="card" key={JSON.stringify(v ?? null)}>
+    <form action={formAction} className="card" key={JSON.stringify(v ?? null)} noValidate>
       <h2>Dados do cliente</h2>
       {client?.id ? <input type="hidden" name="id" value={client.id} /> : null}
       {state.duplicateOf ? <input type="hidden" name="allow_duplicate" value={phone} /> : null}
-      <label>
+      <label htmlFor="name">
         Nome
         <input
+          id="name"
           type="text"
           name="name"
           defaultValue={name}
@@ -48,9 +50,10 @@ export default function ClientForm({ client }: { client?: ClientValues }) {
         <span className="hint" id="name-hint">Nome e apelido.</span>
         {fieldError("name") ? <span className="err" id="name-err" role="alert">{state.error}</span> : null}
       </label>
-      <label>
+      <label htmlFor="phone">
         Telemóvel
         <input
+          id="phone"
           type="tel"
           name="phone"
           defaultValue={phone}
@@ -69,9 +72,10 @@ export default function ClientForm({ client }: { client?: ClientValues }) {
           </span>
         ) : null}
       </label>
-      <label>
+      <label htmlFor="email">
         Email (opcional)
         <input
+          id="email"
           type="email"
           name="email"
           defaultValue={email}
@@ -83,13 +87,19 @@ export default function ClientForm({ client }: { client?: ClientValues }) {
         <span className="hint" id="email-hint">Para mensagens por email.</span>
         {fieldError("email") ? <span className="err" id="email-err" role="alert">{state.error}</span> : null}
       </label>
-      <label>
+      <label htmlFor="birth">
         Data de nascimento (opcional)
-        <input type="date" name="birth_date" defaultValue={birth} aria-describedby="birth-hint" />
-        <span className="hint" id="birth-hint">Para o vale de aniversário.</span>
+        <DateInput
+          id="birth"
+          name="birth_date"
+          defaultValue={birth}
+          hint="Para o vale de aniversário."
+          error={fieldError("birth_date")}
+          autoFocus={state.field === "birth_date"}
+        />
       </label>
-      <label className="check">
-        <input type="checkbox" name="consent" defaultChecked={consent} aria-describedby="consent-hint" />
+      <label className="check" htmlFor="consent">
+        <input id="consent" type="checkbox" name="consent" defaultChecked={consent} aria-describedby="consent-hint" />
         <span>Este cliente quer receber mensagens da Vitral (promoções, saldos e novidades)</span>
       </label>
       <p className="hint" id="consent-hint" style={{ marginTop: "calc(var(--sp-8) * -1)", marginBottom: "var(--sp-24)" }}>
@@ -102,11 +112,6 @@ export default function ClientForm({ client }: { client?: ClientValues }) {
           {pending ? "A guardar…" : "Guardar cliente"}
         </button>
       </div>
-      {client?.id ? (
-        <div className="danger-zone">
-          <Link href={`/clients/${client.id}/delete`} className="btn danger">Eliminar cliente</Link>
-        </div>
-      ) : null}
     </form>
   );
 }

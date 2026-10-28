@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import SubmitButton from "@/app/_components/SubmitButton";
 import { unsubscribe } from "./actions";
+import { tokenColumn } from "./tokenColumn";
 
 export default async function UnsubscribePage({
   params,
@@ -8,13 +9,12 @@ export default async function UnsubscribePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  const column = tokenColumn(token);
   const supabase = createAdminClient();
 
-  const { data: client } = await supabase
-    .from("clients")
-    .select("id, consent")
-    .eq("unsubscribe_token", token)
-    .maybeSingle();
+  const { data: client } = column
+    ? await supabase.from("clients").select("id, consent").eq(column, token).maybeSingle()
+    : { data: null };
 
   if (!client) {
     return (

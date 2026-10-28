@@ -1,21 +1,23 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { createVales, type CreateValesState } from "./actions";
 import { formatDiscount } from "@/lib/discount";
-import { formatDate } from "@/lib/date";
+import { formatDate, parseDisplayDate } from "@/lib/date";
+import DateInput from "@/app/_components/DateInput";
+import SmsCostWarning from "@/app/_components/SmsCostWarning";
 import { formatPhone } from "@/lib/phone";
-import { clientFirstName, countSmsParts, renderValeTemplate } from "@/lib/smsText";
+import { clientFirstName, composeValeMessage, countSmsParts, PREVIEW_TOKEN } from "@/lib/smsText";
 
 type Client = { id: string; name: string; phone: string; consent: boolean };
 
 // The default message follows "Quantos vales para cada cliente?" (singular/plural),
-// as long as the owner hasn't edited it by hand. No accents like á/ó on purpose:
-// they force the 70-character SMS encoding and double the cost.
+// as long as the owner hasn't edited it by hand. Its only accent is é, which is in
+// the cheap GSM-7 set; accents like á/ó would force the 70-character SMS encoding.
 function defaultSms(count: number): string {
   return count > 1
-    ? `Ola {{name}}! Tem ${count} vales de {{desconto}} de desconto na Vitral. Codigos dos vales: {{codigo}}. Validos até {{validade}}.`
-    : "Ola {{name}}! Tem um vale de {{desconto}} de desconto na Vitral. Codigo do vale: {{codigo}}. Valido até {{validade}}.";
+    ? `Bom dia {{name}}! Tem ${count} vales de {{desconto}} de desconto na Vitral: {{codigo}}. Use-os até {{validade}}.`
+    : "Bom dia {{name}}! Tem um vale de {{desconto}} de desconto na Vitral: {{codigo}}. Use-o até {{validade}}.";
 }
 const PREVIEW_CODES = ["ABCD2345", "EFGH6789", "JKLM2345", "NPQR6789", "STUV2345", "WXYZ6789", "ABCD6789", "EFGH2345", "JKLM6789", "NPQR2345"];
 const MAX_RESULTS = 20;
@@ -29,18 +31,25 @@ export default function NewValesForm({
   preselectedId,
   today,
   defaultValidTo,
+  appUrl,
 }: {
   clients: Client[];
   preselectedId?: string;
   today: string;
   defaultValidTo: string;
+  appUrl: string;
 }) {
   const [state, formAction, pending] = useActionState<CreateValesState, FormData>(createVales, {});
 
   const [discountType, setDiscountType] = useState<"percent" | "amount">("percent");
-  const [value, setValue] = useState("");
-  const [validFrom, setValidFrom] = useState(today);
-  const [validTo, setValidTo] = useState(defaultValidTo);
+  // Each kind keeps its own value: 10% is filled in, the euro amount starts empty.
+  const [percentValue, setPercentValue] = useState("10");
+  const [amountValue, setAmountValue] = useState("");
+  const value = discountType === "percent" ? percentValue : amountValue;
+  const setValue = discountType === "percent" ? setPercentValue : setAmountValue;
+  // What's typed in the two date boxes (dd/mm/aaaa).
+  const [validFrom, setValidFrom] = useState(formatDate(today));
+  const [validTo, setValidTo] = useState(formatDate(defaultValidTo));
   const [note, setNote] = useState("");
   const [perClient, setPerClient] = useState("1");
   const [target, setTarget] = useState<"pick" | "all">("pick");
@@ -51,6 +60,7 @@ export default function NewValesForm({
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const comboRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [withSms, setWithSms] = useState(true);
   const [smsText, setSmsText] = useState(defaultSms(1));
   // "Todos os clientes" asks for a second, explicit confirmation before creating/sending.
@@ -69,6 +79,11 @@ export default function NewValesForm({
     : [];
   const shown = matches.slice(0, MAX_RESULTS);
   const showDropdown = open && term !== "";
+
+  // After a failed save, take the person to the field the error is about (it may be far up the page).
+  useEffect(() => {
+    if (state.field) formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [state]);
 
   // Close the dropdown when tapping/clicking anywhere outside it.
   useEffect(() => {
@@ -122,92 +137,143 @@ export default function NewValesForm({
   const discountText =
     Number.isFinite(numericValue) && numericValue > 0
       ? formatDiscount(discountType === "percent" ? { percent: numericValue, amount_eur: null } : { percent: null, amount_eur: numericValue })
-      : discountType === "percent" ? "10%" : "5,00 €";
+      : "[desconto]";
+
+  const validFromIso = parseDisplayDate(validFrom);
+  const validToIso = parseDisplayDate(validTo);
+  // Checked as soon as both dates are complete, not only when saving.
+  const orderError =
+    validFromIso && validToIso && validToIso < validFromIso
+      ? "A data “Válido até” tem de ser igual ou depois de “Válido a partir de”."
+      : undefined;
 
   const previewName = clientFirstName(targets[0]?.name ?? "Maria");
-  const preview = renderValeTemplate(smsText, {
-    firstName: previewName,
-    codes: PREVIEW_CODES.slice(0, perClientNum),
-    discount: discountText,
-    validTo: validTo ? formatDate(validTo) : "",
-  });
+  const preview = composeValeMessage(
+    smsText,
+    {
+      firstName: previewName,
+      codes: PREVIEW_CODES.slice(0, perClientNum),
+      discount: discountText,
+      validTo: validToIso ? formatDate(validToIso) : "[validade]",
+    },
+    appUrl,
+    PREVIEW_TOKEN
+  );
   const counter = countSmsParts(preview);
   const needsConfirm = target === "all" && !confirming;
 
-  // Mark the field an error is about, and tie the error text to it for screen readers.
-  const invalid = (f: NonNullable<CreateValesState["field"]>) =>
-    state.field === f ? { "aria-invalid": true, "aria-describedby": "form-err" } : {};
+  type Field = NonNullable<CreateValesState["field"]>;
+  // Mark the field an error is about and tie its hint and error text to it for screen readers.
+  const described = (f: Field, hintId?: string) => {
+    const ids = [hintId, state.field === f ? `${f}-err` : ""].filter(Boolean).join(" ");
+    return { "aria-invalid": state.field === f, "aria-describedby": ids || undefined };
+  };
+  // The error message, shown right under the field it's about.
+  const fieldError = (f: Field) =>
+    state.field === f ? <span className="err" id={`${f}-err`} role="alert">{state.error}</span> : null;
 
   return (
-    <form action={formAction} className="form-stack">
+    <form
+      className="form-stack"
+      ref={formRef}
+      noValidate
+      // Sent by hand rather than with action={...}: React resets a form after an action,
+      // which would put the radio buttons and the SMS tick box back to how the page
+      // started while the form still shows the other choice.
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => formAction(data));
+      }}
+    >
       <div className="card">
-        <h2>Desconto</h2>
-        <label className="check">
-          <input type="radio" name="discount_type" value="percent" checked={discountType === "percent"} onChange={() => setDiscountType("percent")} />
-          <span>Percentagem (%)</span>
-        </label>
-        <label className="check">
-          <input type="radio" name="discount_type" value="amount" checked={discountType === "amount"} onChange={() => setDiscountType("amount")} />
-          <span>Valor em euros (€)</span>
-        </label>
-        <label>
+        <h2 id="discount-title">Desconto</h2>
+        <div role="radiogroup" aria-labelledby="discount-title">
+          <label className="check" htmlFor="type-percent">
+            <input id="type-percent" type="radio" name="discount_type" value="percent" checked={discountType === "percent"} onChange={() => setDiscountType("percent")} />
+            <span>Percentagem (%)</span>
+          </label>
+          <label className="check" htmlFor="type-amount">
+            <input id="type-amount" type="radio" name="discount_type" value="amount" checked={discountType === "amount"} onChange={() => setDiscountType("amount")} />
+            <span>Valor em euros (€)</span>
+          </label>
+        </div>
+        <label htmlFor="value">
           {discountType === "percent" ? "Percentagem de desconto" : "Valor do desconto em euros"}
           <input
+            id="value"
             type="text"
             name="value"
             inputMode="decimal"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             required
-            {...invalid("value")}
+            {...described("value", "value-hint")}
           />
-          <span className="hint">{discountType === "percent" ? "Um número de 1 a 100." : "Maior que zero; pode ter cêntimos."}</span>
+          <span className="hint" id="value-hint">{discountType === "percent" ? "Um número de 1 a 100." : "Maior que zero; pode ter cêntimos."}</span>
+          {fieldError("value")}
         </label>
-        <label>
+        <label htmlFor="note">
           Descrição (opcional)
-          <input type="text" name="note" maxLength={80} value={note} onChange={(e) => setNote(e.target.value)} />
-          <span className="hint">Só para si. Não aparece na SMS.</span>
+          <input
+            id="note"
+            type="text"
+            name="note"
+            maxLength={80}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            aria-describedby="note-hint"
+          />
+          <span className="hint" id="note-hint">Só para si. Não aparece na SMS.</span>
         </label>
       </div>
 
       <div className="card">
         <h2>Validade</h2>
-        <label>
+        <label htmlFor="valid-from">
           Válido a partir de
-          <input type="date" name="valid_from" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} required />
-          <span className="hint">Primeiro dia em que o vale pode ser usado.</span>
-        </label>
-        <label>
-          Válido até
-          <input
-            type="date"
-            name="valid_to"
-            value={validTo}
-            min={validFrom || undefined}
-            onChange={(e) => setValidTo(e.target.value)}
+          <DateInput
+            id="valid-from"
+            name="valid_from"
+            defaultValue={today}
+            hint="Primeiro dia em que o vale pode ser usado."
+            error={state.field === "valid_from" ? state.error : undefined}
+            onChange={setValidFrom}
             required
-            {...invalid("valid_to")}
           />
-          <span className="hint">Último dia em que o vale pode ser usado.</span>
+        </label>
+        <label htmlFor="valid-to">
+          Válido até
+          <DateInput
+            id="valid-to"
+            name="valid_to"
+            defaultValue={defaultValidTo}
+            hint="Último dia em que o vale pode ser usado."
+            error={orderError ?? (state.field === "valid_to" ? state.error : undefined)}
+            onChange={setValidTo}
+            required
+          />
         </label>
       </div>
 
       <div className="card">
-        <h2>Para quem</h2>
-        <label className="check">
-          <input type="radio" name="target" value="pick" checked={target === "pick"} onChange={() => {
-              setTarget("pick");
-              setConfirming(false);
-            }} />
-          <span>Escolher clientes (um ou vários)</span>
-        </label>
-        <label className="check">
-          <input type="radio" name="target" value="all" checked={target === "all"} onChange={() => {
-              setTarget("all");
-              setConfirming(false);
-            }} />
-          <span>Todos os clientes ({clients.length})</span>
-        </label>
+        <h2 id="target-title">Para quem</h2>
+        <div role="radiogroup" aria-labelledby="target-title">
+          <label className="check" htmlFor="target-pick">
+            <input id="target-pick" type="radio" name="target" value="pick" checked={target === "pick"} onChange={() => {
+                setTarget("pick");
+                setConfirming(false);
+              }} />
+            <span>Escolher clientes (um ou vários)</span>
+          </label>
+          <label className="check" htmlFor="target-all">
+            <input id="target-all" type="radio" name="target" value="all" checked={target === "all"} onChange={() => {
+                setTarget("all");
+                setConfirming(false);
+              }} />
+            <span>Todos os clientes ({clients.length})</span>
+          </label>
+        </div>
 
         {target === "pick" ? (
           <>
@@ -245,7 +311,7 @@ export default function NewValesForm({
                   aria-controls="client-options"
                   aria-autocomplete="list"
                   aria-activedescendant={showDropdown && shown[highlight] ? `client-opt-${shown[highlight].id}` : undefined}
-                  {...invalid("clients")}
+                  {...described("clients", "client-search-hint")}
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -288,14 +354,16 @@ export default function NewValesForm({
                   </ul>
                 ) : null}
               </div>
-              <span className="hint">Escreva o nome ou o telemóvel e toque no cliente.</span>
+              <span className="hint" id="client-search-hint">Escreva o nome ou o telemóvel e toque no cliente.</span>
+              {fieldError("clients")}
             </div>
           </>
         ) : null}
 
-        <label>
+        <label htmlFor="per-client">
           Quantos vales para cada cliente?
           <input
+            id="per-client"
             type="number"
             name="per_client"
             min="1"
@@ -304,34 +372,38 @@ export default function NewValesForm({
             value={perClient}
             onChange={(e) => onPerClientChange(e.target.value)}
             required
-            {...invalid("per_client")}
+            {...described("per_client", "per-client-hint")}
           />
-          <span className="hint">De 1 a 10.</span>
+          <span className="hint" id="per-client-hint">De 1 a 10.</span>
+          {fieldError("per_client")}
         </label>
       </div>
 
       <div className="card">
         <h2>SMS</h2>
-        <label className="check">
-          <input type="checkbox" name="send_sms" checked={withSms} onChange={(e) => setWithSms(e.target.checked)} />
+        <label className="check" htmlFor="send-sms">
+          <input id="send-sms" type="checkbox" name="send_sms" checked={withSms} onChange={(e) => setWithSms(e.target.checked)} />
           <span>Enviar SMS com o código do vale</span>
         </label>
         {withSms ? (
           <>
-            <label>
+            <label htmlFor="sms-text">
               Mensagem
               <textarea
+                id="sms-text"
                 name="sms_text"
                 value={smsText}
                 onChange={(e) => setSmsText(e.target.value)}
                 rows={4}
                 required
-                {...invalid("sms_text")}
+                {...described("sms_text")}
               />
+              {fieldError("sms_text")}
             </label>
             <p className="meta">
-              {counter.length} carateres · {counter.parts} SMS por cliente
+              {counter.length} carateres · {counter.parts} {counter.parts === 1 ? "parte" : "partes"} de SMS por cliente
             </p>
+            <SmsCostWarning text={preview} />
             <div className="preview">
               <p className="preview-title">Pré-visualização</p>
               <p className="meta" style={{ whiteSpace: "pre-wrap" }}>{preview}</p>
@@ -356,14 +428,14 @@ export default function NewValesForm({
               : ""}
           </p>
         ) : null}
-        {state.error ? <p className="err" id="form-err" role="alert">{state.error}</p> : null}
+        {state.error && !state.field ? <p className="err" role="alert">{state.error}</p> : null}
         {confirming ? (
           <div className="preview" role="alert">
             <p className="preview-title">Tem a certeza?</p>
             <p>
               {`Vai criar ${valeCount} ${valeCount === 1 ? "vale" : "vales"} para todos os clientes (${targets.length})`}
               {withSms
-                ? ` e enviar ${smsCount} SMS (${smsCount * counter.parts} ${smsCount * counter.parts === 1 ? "parte" : "partes"} no total).`
+                ? ` e enviar ${smsCount} SMS (${smsCount * counter.parts} ${smsCount * counter.parts === 1 ? "parte" : "partes"} de SMS no total).`
                 : "."}{" "}
               Não é possível desfazer.
             </p>
