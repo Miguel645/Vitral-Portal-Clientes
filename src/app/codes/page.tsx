@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { codeStatus, tagClass } from "./status";
 import Notice from "@/app/_components/Notice";
+import JustSavedLabel from "@/app/_components/JustSaved";
 import Pager, { PAGE_SIZE, pageFromParam } from "@/app/_components/Pager";
 import DeleteMenu from "@/app/_components/DeleteMenu";
 import { deleteCode } from "./actions";
@@ -67,7 +68,7 @@ export default async function CodesPage({
         <Link href="/codes/new" className="btn primary">Criar vales</Link>
       </header>
 
-      <Notice message={message} clear={["saved"]} />
+      <Notice message={message} clear={["saved"]} autoHide />
 
       <div className="bar filters">
         {FILTERS.map((f) => (
@@ -89,7 +90,7 @@ export default async function CodesPage({
               <div>
                 <div className="name">{c.code}</div>
                 <div className="meta">
-                  {justSaved.has(c.code) ? <span className="just-saved-label">Acabado de criar · </span> : null}
+                  {justSaved.has(c.code) ? <JustSavedLabel text="Acabado de criar" /> : null}
                   {KIND_LABEL[c.kind] ?? c.kind}{c.note ? ` · ${c.note}` : ""} · {formatDiscount(c)} · {c.clients?.name ?? "Sem cliente"} · {formatDate(c.valid_from)} a{" "}
                   {formatDate(c.valid_to)}
                 </div>
