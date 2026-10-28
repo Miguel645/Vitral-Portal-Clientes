@@ -9,7 +9,7 @@ import { clientFirstName, composeCampaignMessage } from "@/lib/smsText";
 import type { Recipient } from "./recipients";
 
 // Sending a campaign, shared by the campaign page ("Enviar campanha", "Continuar envio")
-// and the daily job that sends live campaigns to new clients (live.ts).
+// and the daily job that sends scheduled campaigns and finishes interrupted sends (live.ts).
 
 export type CampaignRow = {
   name: string;

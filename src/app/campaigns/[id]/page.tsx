@@ -30,7 +30,7 @@ export default async function CampaignPage({
   const supabase = await createClient();
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, name, sms_text, status, vale_percent, vale_amount_eur, vale_valid_from, vale_valid_to, sent_at, starts_on, live_until, stopped_at")
+    .select("id, name, sms_text, status, vale_percent, vale_amount_eur, vale_valid_from, vale_valid_to, sent_at, starts_on, live_until, stopped_at, created_at")
     .eq("id", id)
     .maybeSingle();
   if (!campaign) notFound();
@@ -57,7 +57,7 @@ export default async function CampaignPage({
   );
 
   if (campaign.status === "draft" || campaign.status === "scheduled") {
-    const editor = await loadEditorData();
+    const editor = await loadEditorData(campaign.created_at);
     return (
       <main className="page-medium">
         {header}
@@ -147,13 +147,13 @@ export default async function CampaignPage({
         </div>
         {isLive ? (
           <p className="meta">
-            Ativa: os clientes novos que recebem mensagens recebem-na todos os dias às 10h, até{" "}
-            {formatDate(campaign.live_until!)}.
+            Ativa até {formatDate(campaign.live_until!)}: se o envio parou a meio, os clientes que faltam recebem-na às
+            10h. Clientes adicionados depois de a campanha ser criada não a recebem.
           </p>
         ) : campaign.stopped_at ? (
-          <p className="meta">Parada em {formatDateTime(campaign.stopped_at)}: os clientes novos já não a recebem.</p>
+          <p className="meta">Parada em {formatDateTime(campaign.stopped_at)}: já não é enviada a mais ninguém.</p>
         ) : campaign.live_until ? (
-          <p className="meta">Terminou a {formatDate(campaign.live_until)}: os clientes novos já não a recebem.</p>
+          <p className="meta">Terminou a {formatDate(campaign.live_until)}.</p>
         ) : null}
         {pending > 0 && !canResume ? (
           <p className="meta">O envio pode ainda estar a decorrer. Atualize a página daqui a um minuto.</p>
@@ -170,7 +170,7 @@ export default async function CampaignPage({
           {isLive ? (
             <form action={stopCampaign}>
               <input type="hidden" name="id" value={campaign.id} />
-              <SubmitButton className="btn" pendingText="A parar…">Parar envio a clientes novos</SubmitButton>
+              <SubmitButton className="btn" pendingText="A parar…">Parar campanha</SubmitButton>
             </form>
           ) : null}
         </div>

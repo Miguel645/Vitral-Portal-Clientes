@@ -33,7 +33,7 @@ export default async function CampaignsPage({
     .order("created_at", { ascending: false });
   const all = (data ?? []) as Row[];
   const rows = [...all.filter((c) => c.id === saved), ...all.filter((c) => c.id !== saved)];
-  // Sent, and still going out to new clients every day.
+  // Sent, and the daily job can still finish its send.
   const today = lisbonToday();
   const isLive = (c: Row) => c.status === "sent" && !c.stopped_at && !!c.live_until && c.live_until >= today;
 
@@ -64,7 +64,7 @@ export default async function CampaignsPage({
                         : c.status === "scheduled" && c.starts_on
                           ? `Agendada para ${formatDate(c.starts_on)}, às 10h`
                           : `Criada em ${formatDateTime(c.created_at)}`}
-                      {isLive(c) ? ` · Clientes novos até ${formatDate(c.live_until!)}` : ""}
+                      {isLive(c) ? ` · Até ${formatDate(c.live_until!)}` : ""}
                       {hasVale ? ` · Com vale de ${formatDiscount({ percent: c.vale_percent, amount_eur: c.vale_amount_eur })}` : ""}
                     </div>
                   </div>
