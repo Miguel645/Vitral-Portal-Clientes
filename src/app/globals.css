@@ -36,8 +36,16 @@ main { margin: 0 auto; padding-top: var(--sp-32); padding-bottom: var(--sp-64); 
 .page-medium { max-width: 680px; }
 .page-narrow { max-width: 460px; }
 
-/* Consistent vertical rhythm between stacked sections on a page */
-main > * + * { margin-top: var(--sp-32); }
+/* Consistent vertical rhythm between stacked sections on a page.
+   !important because component rules (ul.list, .notice, .actions) reset their own margins
+   and would otherwise win, leaving lists stuck to the header. */
+main > * + * { margin-top: var(--sp-32) !important; }
+/* A search/filter bar belongs to the list under it, so it sits closer */
+main > .bar + * { margin-top: var(--sp-16) !important; }
+
+/* Paragraphs: spacing from the scale instead of the browser's 1em */
+p { margin: 0 0 var(--sp-16); }
+p:last-child { margin-bottom: 0; }
 
 header.top {
   display: flex;
@@ -275,7 +283,7 @@ label .err, .combo .err { display: block; margin: var(--sp-8) 0 0; font-size: 0.
 .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); column-gap: var(--sp-24); }
 .filters .actions { grid-column: 1 / -1; margin-top: 0; }
 .err-text { color: var(--warn); }
-.actions { display: flex; gap: var(--sp-16); justify-content: flex-end; flex-wrap: wrap; margin-top: var(--sp-12); }
+.actions { display: flex; gap: var(--sp-16); justify-content: flex-end; flex-wrap: wrap; margin-top: var(--sp-16); }
 
 /* "…" (more actions) menu: destructive actions live here, never next to Guardar */
 .more { position: relative; display: inline-block; }
