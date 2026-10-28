@@ -71,8 +71,8 @@ export async function runBirthdayCheck(): Promise<{ created: number; smsSent: nu
     });
 
     // The SMS only goes out for a vale this run actually created. The database allows
-    // one birthday vale per client per year, so a second run (or the cron and the
-    // "run now" button at once) can't create another one and never sends twice.
+    // one birthday vale per client per year, so a second run can't create another
+    // one and never sends twice.
     if (error) continue;
     created++;
 
