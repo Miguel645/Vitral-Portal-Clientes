@@ -10,11 +10,13 @@ export type LiveResult = { error?: string; campaigns: number; clients: number; m
 // The daily job (10:00 Lisbon, /api/cron/campaigns). Runs without a session, so it
 // uses the admin client.
 // 1. Scheduled campaigns whose "Início" has come are sent to every client who receives
-//    messages, like "Enviar campanha" (anyone not reached in time is shown on the
-//    summary with "Continuar envio").
+//    messages, like "Enviar campanha". If nothing could be sent, it goes back to
+//    scheduled and is tried again the next day.
 // 2. Every live campaign (sent, not stopped, "Fim" today or later) goes to the clients
-//    added since it was first sent who receive messages and haven't got it yet.
-//    Anyone not reached in time gets it the next day.
+//    who receive messages and haven't got it yet: those added since it was first sent,
+//    and those a first send didn't reach in time (see pendingRecipients). Anyone not
+//    reached in time gets it the next day.
+// A campaign that fails is reported and the others still go out.
 export async function runLiveCampaigns(): Promise<LiveResult> {
   const result: LiveResult = { campaigns: 0, clients: 0, messages: [] };
   const urlError = appUrlError();
@@ -45,11 +47,24 @@ export async function runLiveCampaigns(): Promise<LiveResult> {
       .select("id");
     if (!claimed?.length) continue;
 
-    const recipients = await pendingRecipients(supabase, campaign.id);
-    if (recipients.length === 0) continue;
-    const sent = await deliver(supabase, campaign.id, campaign as CampaignRow, recipients, startedAt);
-    result.campaigns++;
-    result.clients += recipients.length;
+    let sent: Awaited<ReturnType<typeof deliver>>;
+    try {
+      const recipients = await pendingRecipients(supabase, campaign.id);
+      if (recipients.length === 0) continue;
+      sent = await deliver(supabase, campaign.id, campaign as CampaignRow, recipients, startedAt);
+      result.campaigns++;
+      result.clients += recipients.length;
+    } catch {
+      sent = { error: "Não foi possível ler a lista de clientes.", nothingSent: true };
+    }
+    if ("error" in sent && sent.nothingSent) {
+      // Nothing was created or sent: back to scheduled, so tomorrow's run tries again.
+      await supabase
+        .from("campaigns")
+        .update({ status: "scheduled", sent_at: null, first_sent_at: null })
+        .eq("id", campaign.id)
+        .eq("status", "sent");
+    }
     result.messages.push(`${campaign.name}: ${"error" in sent ? sent.error : sent.message}`);
   }
 
@@ -66,7 +81,13 @@ export async function runLiveCampaigns(): Promise<LiveResult> {
   for (const campaign of campaigns ?? []) {
     if (Date.now() - startedAt > TIME_BUDGET_MS) break;
 
-    const recipients = await pendingRecipients(supabase, campaign.id, campaign.first_sent_at);
+    let recipients;
+    try {
+      recipients = await pendingRecipients(supabase, campaign.id, campaign.first_sent_at);
+    } catch {
+      result.messages.push(`${campaign.name}: Não foi possível ler a lista de clientes.`);
+      continue;
+    }
     if (recipients.length === 0) continue;
 
     // Same claim as "Continuar envio": skip a campaign someone is sending right now,
@@ -77,10 +98,14 @@ export async function runLiveCampaigns(): Promise<LiveResult> {
     const { data: claimed } = await claim.select("id");
     if (!claimed?.length) continue;
 
-    const sent = await deliver(supabase, campaign.id, campaign as CampaignRow, recipients, startedAt);
-    result.campaigns++;
-    result.clients += recipients.length;
-    result.messages.push(`${campaign.name}: ${"error" in sent ? sent.error : sent.message}`);
+    try {
+      const sent = await deliver(supabase, campaign.id, campaign as CampaignRow, recipients, startedAt);
+      result.campaigns++;
+      result.clients += recipients.length;
+      result.messages.push(`${campaign.name}: ${"error" in sent ? sent.error : sent.message}`);
+    } catch {
+      result.messages.push(`${campaign.name}: o envio parou com um erro; continua amanhã.`);
+    }
   }
   return result;
 }

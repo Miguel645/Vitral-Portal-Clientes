@@ -196,6 +196,9 @@ async function sendToAll(
   row: CampaignRow
 ): Promise<{ message: string } | { error: string }> {
   const startedAt = Date.now();
+  // Taken before the client list is read: anyone added after this is a "new client"
+  // for the daily job, so nobody added during the send is missed.
+  const firstSentAt = new Date(startedAt).toISOString();
   const urlError = appUrlError();
   if (urlError) return { error: urlError };
   // Only clients who want to receive messages, never anyone else (1,000 at a time).
@@ -209,10 +212,9 @@ async function sendToAll(
 
   // Mark it as sent first, so a double tap (or a second tab) can never send it twice.
   // first_sent_at: clients added after this are the "new clients" of a live campaign.
-  const now = new Date().toISOString();
   const { data: claimed } = await supabase
     .from("campaigns")
-    .update({ status: "sent", sent_at: now, first_sent_at: now })
+    .update({ status: "sent", sent_at: new Date().toISOString(), first_sent_at: firstSentAt })
     .eq("id", id)
     .eq("status", "draft")
     .select("id");

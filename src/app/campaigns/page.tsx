@@ -69,7 +69,15 @@ export default async function CampaignsPage({
                     </div>
                   </div>
                   <span className={c.status === "sent" ? "tag on" : "tag"}>
-                    {isLive(c) ? "Ativa" : c.status === "sent" ? "Enviada" : c.status === "scheduled" ? "Agendada" : "Rascunho"}
+                    {isLive(c)
+                      ? "Ativa"
+                      : c.status === "sent"
+                        ? "Enviada"
+                        : c.status === "scheduled"
+                          ? c.live_until && c.live_until < today
+                            ? "Não enviada"
+                            : "Agendada"
+                          : "Rascunho"}
                   </span>
                 </Link>
               </li>
