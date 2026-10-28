@@ -2,17 +2,19 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import Notice from "@/app/_components/Notice";
 import JustSavedLabel from "@/app/_components/JustSaved";
-import { formatDateTime, lisbonToday } from "@/lib/date";
+import { formatDate, formatDateTime, lisbonToday } from "@/lib/date";
 import { formatDiscount } from "@/lib/discount";
 
 type Row = {
   id: string;
   name: string;
-  status: "draft" | "sent";
+  status: "draft" | "scheduled" | "sent";
   vale_percent: number | null;
   vale_amount_eur: number | null;
   created_at: string;
   sent_at: string | null;
+  first_sent_at: string | null;
+  starts_on: string | null;
   live_until: string | null;
   stopped_at: string | null;
 };
@@ -27,7 +29,7 @@ export default async function CampaignsPage({
   const supabase = await createClient();
   const { data } = await supabase
     .from("campaigns")
-    .select("id, name, status, vale_percent, vale_amount_eur, created_at, sent_at, live_until, stopped_at")
+    .select("id, name, status, vale_percent, vale_amount_eur, created_at, sent_at, first_sent_at, starts_on, live_until, stopped_at")
     .order("created_at", { ascending: false });
   const all = (data ?? []) as Row[];
   const rows = [...all.filter((c) => c.id === saved), ...all.filter((c) => c.id !== saved)];
@@ -57,14 +59,17 @@ export default async function CampaignsPage({
                     <div className="name">{c.name}</div>
                     <div className="meta">
                       {c.id === saved ? <JustSavedLabel text="Acabada de guardar" /> : null}
-                      {c.status === "sent" && c.sent_at
-                        ? `Enviada em ${formatDateTime(c.sent_at)}`
-                        : `Criada em ${formatDateTime(c.created_at)}`}
+                      {c.status === "sent" && (c.first_sent_at ?? c.sent_at)
+                        ? `Enviada em ${formatDateTime((c.first_sent_at ?? c.sent_at)!)}`
+                        : c.status === "scheduled" && c.starts_on
+                          ? `Agendada para ${formatDate(c.starts_on)}, às 10h`
+                          : `Criada em ${formatDateTime(c.created_at)}`}
+                      {isLive(c) ? ` · Clientes novos até ${formatDate(c.live_until!)}` : ""}
                       {hasVale ? ` · Com vale de ${formatDiscount({ percent: c.vale_percent, amount_eur: c.vale_amount_eur })}` : ""}
                     </div>
                   </div>
                   <span className={c.status === "sent" ? "tag on" : "tag"}>
-                    {isLive(c) ? "Ativa" : c.status === "sent" ? "Enviada" : "Rascunho"}
+                    {isLive(c) ? "Ativa" : c.status === "sent" ? "Enviada" : c.status === "scheduled" ? "Agendada" : "Rascunho"}
                   </span>
                 </Link>
               </li>

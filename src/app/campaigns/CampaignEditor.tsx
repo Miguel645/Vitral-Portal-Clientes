@@ -17,6 +17,7 @@ export type EditableCampaign = {
   vale_amount_eur: number | null;
   vale_valid_from: string | null;
   vale_valid_to: string | null;
+  starts_on: string | null;
   live_until: string | null;
 };
 
@@ -63,8 +64,9 @@ export default function CampaignEditor({
   // What's typed in the two date boxes (dd/mm/aaaa).
   const [validFrom, setValidFrom] = useState(formatDate(campaign?.vale_valid_from ?? today));
   const [validTo, setValidTo] = useState(formatDate(campaign?.vale_valid_to ?? defaultValidTo));
-  // "Clientes novos": until when clients added later also get it (daily, at 10:00).
-  const [live, setLive] = useState(campaign ? campaign.live_until != null : true);
+  // "Início": sent that day (at 10:00 when it's later than today). "Fim": until then,
+  // clients added later also get it, every day at 10:00.
+  const [startsOn, setStartsOn] = useState(formatDate(campaign?.starts_on && campaign.starts_on >= today ? campaign.starts_on : today));
   const [liveUntil, setLiveUntil] = useState(campaign?.live_until ? formatDate(campaign.live_until) : "");
   // Until it's typed in, the date follows the vale's "Válido até" (or today + 30 days).
   // The box is remounted with each new suggestion; once typed in, its key stays put.
@@ -103,10 +105,8 @@ export default function CampaignEditor({
       data.set("valid_from", validFrom);
       data.set("valid_to", validTo);
     }
-    if (live) {
-      data.set("live", "on");
-      data.set("live_until", liveUntilText);
-    }
+    data.set("starts_on", startsOn);
+    data.set("live_until", liveUntilText);
     if (intent === "test") data.set("phone", phone);
     setPendingIntent(intent);
     // Sent by hand rather than with action={...}: React resets a form after an action,
@@ -141,11 +141,18 @@ export default function CampaignEditor({
       ? "A data “Válido até” tem de ser igual ou depois de “Válido a partir de”."
       : undefined;
 
+  const startsOnIso = parseDisplayDate(startsOn);
   const liveUntilIso = parseDisplayDate(liveUntilText);
+  // Checked as soon as the dates are complete, not only when saving.
+  const startError = startsOnIso && startsOnIso < today ? "O início tem de ser hoje ou depois." : undefined;
   const liveError =
-    withVale && liveUntilIso && validToIso && liveUntilIso > validToIso
-      ? "A data não pode ser depois de “Válido até” do vale: os clientes novos receberiam um vale já expirado."
-      : undefined;
+    startsOnIso && liveUntilIso && liveUntilIso < startsOnIso
+      ? "O fim tem de ser igual ou depois do início."
+      : withVale && liveUntilIso && validToIso && liveUntilIso > validToIso
+        ? "O fim não pode ser depois de “Válido até” do vale: os clientes novos receberiam um vale já expirado."
+        : undefined;
+  // Starting later: "Agendar campanha" instead of sending now.
+  const later = !!startsOnIso && startsOnIso > today;
 
   const preview = composeCampaignMessage(
     message,
@@ -316,45 +323,42 @@ export default function CampaignEditor({
       </div>
 
       <div className="card">
-        <h2>Clientes novos</h2>
-        <label className="check" htmlFor="live">
-          <input
-            id="live"
-            type="checkbox"
-            checked={live}
-            onChange={(e) => {
-              setLive(e.target.checked);
+        <h2>Datas</h2>
+        <label htmlFor="starts-on">
+          Início
+          <DateInput
+            id="starts-on"
+            name="starts_on"
+            defaultValue={startsOn}
+            hint="Dia em que é enviada a todos os clientes. Se for depois de hoje, é enviada nesse dia às 10h."
+            error={startError ?? (state.field === "starts_on" ? state.error : undefined)}
+            onChange={(text) => {
+              setStartsOn(text);
               setConfirming(false);
             }}
-            aria-describedby="live-hint"
+            required
           />
-          <span>Enviar também aos clientes novos</span>
         </label>
-        <p className="hint" id="live-hint" style={{ marginTop: "calc(var(--sp-8) * -1)", marginBottom: live ? "var(--sp-24)" : 0 }}>
-          Todos os dias às 10h, quem foi adicionado depois do envio e recebe mensagens recebe esta campanha.
-        </p>
-        {live ? (
-          <label htmlFor="live-until" style={{ marginBottom: 0 }}>
-            Até
-            <DateInput
-              key={liveTyped ? liveKey : `suggested-${suggestedLiveUntil}`}
-              id="live-until"
-              name="live_until"
-              defaultValue={liveUntilText}
-              hint="Último dia em que os clientes novos a recebem."
-              error={liveError ?? (state.field === "live_until" ? state.error : undefined)}
-              onChange={(text) => {
-                if (!liveTyped) {
-                  setLiveKey(`suggested-${suggestedLiveUntil}`);
-                  setLiveTyped(true);
-                }
-                setLiveUntil(text);
-                setConfirming(false);
-              }}
-              required
-            />
-          </label>
-        ) : null}
+        <label htmlFor="live-until" style={{ marginBottom: 0 }}>
+          Fim
+          <DateInput
+            key={liveTyped ? liveKey : `suggested-${suggestedLiveUntil}`}
+            id="live-until"
+            name="live_until"
+            defaultValue={liveUntilText}
+            hint="Até este dia, os clientes novos que recebem mensagens também a recebem, todos os dias às 10h."
+            error={liveError ?? (state.field === "live_until" ? state.error : undefined)}
+            onChange={(text) => {
+              if (!liveTyped) {
+                setLiveKey(`suggested-${suggestedLiveUntil}`);
+                setLiveTyped(true);
+              }
+              setLiveUntil(text);
+              setConfirming(false);
+            }}
+            required
+          />
+        </label>
       </div>
 
       <form
@@ -399,6 +403,7 @@ export default function CampaignEditor({
           {invalidCount > 0
             ? ` ${invalidCount} ${invalidCount === 1 ? "tem" : "têm"} um número inválido e ${invalidCount === 1 ? "fica" : "ficam"} de fora.`
             : ""}
+          {later ? " Contados hoje: no dia do envio podem ser mais." : ""}
         </p>
         {generalError(["save", "send"])}
 
@@ -420,7 +425,8 @@ export default function CampaignEditor({
                   {validFromIso && validToIso ? `, válido de ${formatDate(validFromIso)} a ${formatDate(validToIso)}` : ""}
                 </li>
               ) : null}
-              {live && liveUntilIso ? (
+              {later && startsOnIso ? <li>Vai ser enviada a {formatDate(startsOnIso)}, às 10h</li> : null}
+              {liveUntilIso ? (
                 <li>Os clientes novos também a recebem, todos os dias às 10h, até {formatDate(liveUntilIso)}</li>
               ) : null}
               <li>Não é possível desfazer.</li>
@@ -435,7 +441,7 @@ export default function CampaignEditor({
                 Cancelar
               </button>
               <button type="button" className="btn primary" onClick={() => run("send")} disabled={pending}>
-                {busy("send") ? "A enviar…" : "Confirmar envio"}
+                {busy("send") ? (later ? "A agendar…" : "A enviar…") : later ? "Confirmar agendamento" : "Confirmar envio"}
               </button>
             </>
           ) : (
@@ -449,12 +455,12 @@ export default function CampaignEditor({
                 disabled={pending || sendable.length === 0}
                 onClick={() => setConfirming(true)}
               >
-                Enviar campanha
+                {later ? "Agendar campanha" : "Enviar campanha"}
               </button>
             </>
           )}
         </div>
-        {busy("send") ? (
+        {busy("send") && !later ? (
           <p className="meta" role="status" style={{ marginTop: "var(--sp-16)" }}>
             A enviar em grupos de 10. Não feche esta página.
           </p>

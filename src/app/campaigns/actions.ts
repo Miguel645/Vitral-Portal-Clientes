@@ -9,10 +9,10 @@ import { appUrlError, unsubscribeBaseUrl } from "@/lib/optOut";
 import { randomString } from "@/lib/codes";
 import { pendingRecipients, RESUME_AFTER_MS, type Recipient } from "./recipients";
 import { deliver, type CampaignRow } from "./deliver";
-import { INVALID_DATE, lisbonToday, parseDisplayDate } from "@/lib/date";
+import { formatDate, INVALID_DATE, lisbonToday, parseDisplayDate } from "@/lib/date";
 import { composeCampaignMessage } from "@/lib/smsText";
 
-export type CampaignField = "name" | "sms_text" | "value" | "valid_from" | "valid_to" | "live_until" | "phone";
+export type CampaignField = "name" | "sms_text" | "value" | "valid_from" | "valid_to" | "starts_on" | "live_until" | "phone";
 
 // `intent` says which button was pressed, so its result shows next to it.
 // `savedId`: a new campaign was saved as a draft before sending failed, so the next try updates it.
@@ -20,8 +20,9 @@ export type CampaignState = { error?: string; field?: CampaignField; ok?: string
 
 type Intent = "save" | "test" | "send";
 
-// What's saved: the message and vale, plus until when new clients also get it.
-type SavedRow = CampaignRow & { live_until: string | null };
+// What's saved: the message and vale, plus "Início" (sent that day, at 10:00 when it's
+// later than today) and "Fim" (new clients get it every day until then).
+type SavedRow = CampaignRow & { starts_on: string; live_until: string };
 
 
 // Shown in a test SMS instead of a real vale code. It has a "1", which real codes
@@ -32,15 +33,17 @@ function parse(formData: FormData): { error: string; field?: CampaignField } | {
   const parsed = parseMessage(formData);
   if ("error" in parsed) return parsed;
   const { row } = parsed;
-  if (formData.get("live") !== "on") return { row: { ...row, live_until: null } };
 
+  const startsOn = parseDisplayDate(String(formData.get("starts_on") ?? ""));
   const liveUntil = parseDisplayDate(String(formData.get("live_until") ?? ""));
+  if (!startsOn) return { error: INVALID_DATE, field: "starts_on" };
+  if (startsOn < lisbonToday()) return { error: "O início tem de ser hoje ou depois.", field: "starts_on" };
   if (!liveUntil) return { error: INVALID_DATE, field: "live_until" };
-  if (liveUntil < lisbonToday()) return { error: "A data tem de ser hoje ou depois.", field: "live_until" };
+  if (liveUntil < startsOn) return { error: "O fim tem de ser igual ou depois do início.", field: "live_until" };
   if (row.vale_valid_to && liveUntil > row.vale_valid_to) {
-    return { error: "A data não pode ser depois de “Válido até” do vale: os clientes novos receberiam um vale já expirado.", field: "live_until" };
+    return { error: "O fim não pode ser depois de “Válido até” do vale: os clientes novos receberiam um vale já expirado.", field: "live_until" };
   }
-  return { row: { ...row, live_until: liveUntil } };
+  return { row: { ...row, starts_on: startsOn, live_until: liveUntil } };
 }
 
 function parseMessage(formData: FormData): { error: string; field?: CampaignField } | { row: CampaignRow } {
@@ -102,13 +105,24 @@ function parseMessage(formData: FormData): { error: string; field?: CampaignFiel
   };
 }
 
-// Creates the campaign, or updates it while it's still a draft. Returns its id.
-async function saveDraft(supabase: SupabaseClient, id: string, row: SavedRow): Promise<string | null> {
+// Creates the campaign, or updates it while it's still a draft or scheduled (saving a
+// scheduled one as a draft cancels the schedule). Returns its id.
+async function saveCampaign(
+  supabase: SupabaseClient,
+  id: string,
+  row: SavedRow,
+  status: "draft" | "scheduled"
+): Promise<string | null> {
   if (id) {
-    const { data } = await supabase.from("campaigns").update(row).eq("id", id).eq("status", "draft").select("id");
+    const { data } = await supabase
+      .from("campaigns")
+      .update({ ...row, status })
+      .eq("id", id)
+      .in("status", ["draft", "scheduled"])
+      .select("id");
     return data?.[0]?.id ?? null;
   }
-  const { data } = await supabase.from("campaigns").insert(row).select("id").single();
+  const { data } = await supabase.from("campaigns").insert({ ...row, status }).select("id").single();
   return data?.id ?? null;
 }
 
@@ -121,8 +135,10 @@ export async function campaignAction(_prev: CampaignState, formData: FormData): 
   const parsed = parse(formData);
   if ("error" in parsed) return { error: parsed.error, field: parsed.field, intent };
 
+  // Starting later: saved as scheduled, and the daily job sends it at 10:00 on its start date.
+  const later = intent === "send" && parsed.row.starts_on > lisbonToday();
   const supabase = await createClient();
-  const id = await saveDraft(supabase, String(formData.get("id") ?? ""), parsed.row);
+  const id = await saveCampaign(supabase, String(formData.get("id") ?? ""), parsed.row, later ? "scheduled" : "draft");
   if (!id) {
     return {
       error: "Não foi possível guardar a campanha. Se já foi enviada, veja-a na lista de campanhas; senão, tente novamente.",
@@ -131,6 +147,10 @@ export async function campaignAction(_prev: CampaignState, formData: FormData): 
   }
 
   if (intent === "save") redirect(`/campaigns?saved=${id}&message=${encodeURIComponent("Campanha guardada.")}`);
+  if (later) {
+    const message = `Campanha agendada: vai ser enviada a ${formatDate(parsed.row.starts_on)}, às 10h.`;
+    redirect(`/campaigns?saved=${id}&message=${encodeURIComponent(message)}`);
+  }
 
   const result = await sendToAll(supabase, id, parsed.row);
   if ("error" in result) return { error: result.error, intent, savedId: id };
@@ -267,4 +287,16 @@ export async function stopCampaign(formData: FormData) {
     ? "Campanha parada: os clientes novos já não a vão receber."
     : "Não foi possível parar a campanha. Atualize a página e tente novamente.";
   redirect(`/campaigns/${id}?message=${encodeURIComponent(message)}`);
+}
+
+// "Eliminar campanha" in the campaign's "…" menu. The SMS history and the vales it
+// created stay, without the campaign; a live or scheduled campaign stops going out.
+export async function deleteCampaign(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "");
+  if (/^[0-9a-f-]{36}$/i.test(id)) {
+    const supabase = await createClient();
+    await supabase.from("campaigns").delete().eq("id", id);
+  }
+  redirect(`/campaigns?message=${encodeURIComponent(name ? `Campanha ${name} eliminada.` : "Campanha eliminada.")}`);
 }
