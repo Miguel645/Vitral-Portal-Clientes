@@ -30,7 +30,7 @@ export default function ClientForm({ client }: { client?: ClientValues }) {
     [`${f}-hint`, fieldError(f) || extra ? `${f}-err` : ""].filter(Boolean).join(" ");
 
   return (
-    <form action={formAction} className="card" key={JSON.stringify(v ?? null)}>
+    <form action={formAction} className="card" key={JSON.stringify(v ?? null)} noValidate>
       <h2>Dados do cliente</h2>
       {client?.id ? <input type="hidden" name="id" value={client.id} /> : null}
       {state.duplicateOf ? <input type="hidden" name="allow_duplicate" value={phone} /> : null}

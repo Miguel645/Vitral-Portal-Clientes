@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { createVales, type CreateValesState } from "./actions";
 import { formatDiscount } from "@/lib/discount";
 import { formatDate, parseDisplayDate } from "@/lib/date";
@@ -60,6 +60,7 @@ export default function NewValesForm({
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const comboRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [withSms, setWithSms] = useState(true);
   const [smsText, setSmsText] = useState(defaultSms(1));
   // "Todos os clientes" asks for a second, explicit confirmation before creating/sending.
@@ -78,6 +79,11 @@ export default function NewValesForm({
     : [];
   const shown = matches.slice(0, MAX_RESULTS);
   const showDropdown = open && term !== "";
+
+  // After a failed save, take the person to the field the error is about (it may be far up the page).
+  useEffect(() => {
+    if (state.field) formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [state]);
 
   // Close the dropdown when tapping/clicking anywhere outside it.
   useEffect(() => {
@@ -156,12 +162,30 @@ export default function NewValesForm({
   const counter = countSmsParts(preview);
   const needsConfirm = target === "all" && !confirming;
 
-  // Mark the field an error is about, and tie the error text to it for screen readers.
-  const invalid = (f: NonNullable<CreateValesState["field"]>) =>
-    state.field === f ? { "aria-invalid": true, "aria-describedby": "form-err" } : {};
+  type Field = NonNullable<CreateValesState["field"]>;
+  // Mark the field an error is about and tie its hint and error text to it for screen readers.
+  const described = (f: Field, hintId?: string) => {
+    const ids = [hintId, state.field === f ? `${f}-err` : ""].filter(Boolean).join(" ");
+    return { "aria-invalid": state.field === f, "aria-describedby": ids || undefined };
+  };
+  // The error message, shown right under the field it's about.
+  const fieldError = (f: Field) =>
+    state.field === f ? <span className="err" id={`${f}-err`} role="alert">{state.error}</span> : null;
 
   return (
-    <form action={formAction} className="form-stack">
+    <form
+      className="form-stack"
+      ref={formRef}
+      noValidate
+      // Sent by hand rather than with action={...}: React resets a form after an action,
+      // which would put the radio buttons and the SMS tick box back to how the page
+      // started while the form still shows the other choice.
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => formAction(data));
+      }}
+    >
       <div className="card">
         <h2>Desconto</h2>
         <label className="check">
@@ -181,9 +205,10 @@ export default function NewValesForm({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             required
-            {...invalid("value")}
+            {...described("value", "value-hint")}
           />
-          <span className="hint">{discountType === "percent" ? "Um número de 1 a 100." : "Maior que zero; pode ter cêntimos."}</span>
+          <span className="hint" id="value-hint">{discountType === "percent" ? "Um número de 1 a 100." : "Maior que zero; pode ter cêntimos."}</span>
+          {fieldError("value")}
         </label>
         <label>
           Descrição (opcional)
@@ -273,7 +298,7 @@ export default function NewValesForm({
                   aria-controls="client-options"
                   aria-autocomplete="list"
                   aria-activedescendant={showDropdown && shown[highlight] ? `client-opt-${shown[highlight].id}` : undefined}
-                  {...invalid("clients")}
+                  {...described("clients", "client-search-hint")}
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -316,7 +341,8 @@ export default function NewValesForm({
                   </ul>
                 ) : null}
               </div>
-              <span className="hint">Escreva o nome ou o telemóvel e toque no cliente.</span>
+              <span className="hint" id="client-search-hint">Escreva o nome ou o telemóvel e toque no cliente.</span>
+              {fieldError("clients")}
             </div>
           </>
         ) : null}
@@ -332,9 +358,10 @@ export default function NewValesForm({
             value={perClient}
             onChange={(e) => onPerClientChange(e.target.value)}
             required
-            {...invalid("per_client")}
+            {...described("per_client", "per-client-hint")}
           />
-          <span className="hint">De 1 a 10.</span>
+          <span className="hint" id="per-client-hint">De 1 a 10.</span>
+          {fieldError("per_client")}
         </label>
       </div>
 
@@ -354,11 +381,12 @@ export default function NewValesForm({
                 onChange={(e) => setSmsText(e.target.value)}
                 rows={4}
                 required
-                {...invalid("sms_text")}
+                {...described("sms_text")}
               />
+              {fieldError("sms_text")}
             </label>
             <p className="meta">
-              {counter.length} carateres · {counter.parts} SMS por cliente
+              {counter.length} carateres · {counter.parts} {counter.parts === 1 ? "parte" : "partes"} de SMS por cliente
             </p>
             <SmsCostWarning text={preview} />
             <div className="preview">
@@ -385,14 +413,14 @@ export default function NewValesForm({
               : ""}
           </p>
         ) : null}
-        {state.error ? <p className="err" id="form-err" role="alert">{state.error}</p> : null}
+        {state.error && !state.field ? <p className="err" role="alert">{state.error}</p> : null}
         {confirming ? (
           <div className="preview" role="alert">
             <p className="preview-title">Tem a certeza?</p>
             <p>
               {`Vai criar ${valeCount} ${valeCount === 1 ? "vale" : "vales"} para todos os clientes (${targets.length})`}
               {withSms
-                ? ` e enviar ${smsCount} SMS (${smsCount * counter.parts} ${smsCount * counter.parts === 1 ? "parte" : "partes"} no total).`
+                ? ` e enviar ${smsCount} SMS (${smsCount * counter.parts} ${smsCount * counter.parts === 1 ? "parte" : "partes"} de SMS no total).`
                 : "."}{" "}
               Não é possível desfazer.
             </p>

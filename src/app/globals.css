@@ -247,7 +247,8 @@ label.check input { width: 24px; height: 24px; min-height: 0; flex: 0 0 auto; ma
 .combo-empty { padding: var(--sp-12) var(--sp-16); color: var(--muted); }
 .hint { display: block; margin-top: var(--sp-8); font-size: 0.95rem; color: var(--muted); font-weight: 400; }
 .err { color: var(--warn); font-size: 1rem; margin: 0 0 var(--sp-16); }
-label .err, .combo .err { display: block; margin: var(--sp-8) 0 0; font-weight: 500; }
+/* An error under a field looks like the hint under it, in the error colour */
+label .err, .combo .err { display: block; margin: var(--sp-8) 0 0; font-size: 0.95rem; font-weight: 500; }
 [aria-invalid="true"] { border-color: var(--warn); }
 
 /* Items stacked inside one section (e.g. the vale check result and its button) */

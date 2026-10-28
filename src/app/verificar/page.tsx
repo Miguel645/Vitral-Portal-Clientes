@@ -23,9 +23,11 @@ export default async function VerificarValePage({
 }: {
   searchParams: Promise<{ code?: string; done?: string; undone?: string }>;
 }) {
-  const { code = "", done, undone } = await searchParams;
+  const { code, done, undone } = await searchParams;
   // Ignore spaces and dashes that sometimes get typed or pasted in.
-  const term = code.replace(/[\s-]/g, "").toUpperCase();
+  const term = (code ?? "").replace(/[\s-]/g, "").toUpperCase();
+  // "Verificar" pressed with the box empty.
+  const missing = code !== undefined && term === "";
   const supabase = await createClient();
 
   let found: Found | null = null;
@@ -49,11 +51,12 @@ export default async function VerificarValePage({
         <h1>Verificar vale</h1>
       </header>
 
-      <form method="get" className="card">
+      <form method="get" className="card" noValidate>
         <label htmlFor="code">
           Código do vale
-          <CodeInput defaultValue={term} />
+          <CodeInput defaultValue={term} invalid={missing} />
           <span className="hint" id="code-hint">As 8 letras e números do vale.</span>
+          {missing ? <span className="err" id="code-err" role="alert">Escreva o código do vale.</span> : null}
         </label>
         <div className="actions">
           <button type="submit" className="btn primary">Verificar</button>

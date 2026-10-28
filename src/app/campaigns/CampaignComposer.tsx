@@ -25,6 +25,17 @@ export default function CampaignComposer({
   // "Enviar a todos" first shows a summary; only "Confirmar envio" sends.
   const [confirming, setConfirming] = useState(false);
   const confirmTitleRef = useRef<HTMLParagraphElement>(null);
+  const messageRef = useRef<HTMLTextAreaElement>(null);
+  // Set when sending is tried with an empty message; shown under the message box.
+  const [messageEmpty, setMessageEmpty] = useState(false);
+  const messageError = messageEmpty && !message.trim() ? "Escreva a mensagem." : undefined;
+
+  function requireMessage(): boolean {
+    if (message.trim()) return true;
+    setMessageEmpty(true);
+    messageRef.current?.focus();
+    return false;
+  }
 
   useEffect(() => {
     if (confirming) confirmTitleRef.current?.focus();
@@ -52,6 +63,7 @@ export default function CampaignComposer({
         <label>
           Mensagem
           <textarea
+            ref={messageRef}
             name="message"
             value={message}
             onChange={(e) => {
@@ -60,15 +72,17 @@ export default function CampaignComposer({
             }}
             rows={4}
             required
+            aria-invalid={!!messageError}
           />
           <span className="hint">
             Use {"{{name}}"} para o primeiro nome do cliente. O link de cancelamento é adicionado automaticamente no fim.
           </span>
+          {messageError ? <span className="err" role="alert">{messageError}</span> : null}
         </label>
 
         <p className="meta">
-          {counter.length} carateres · {counter.parts} SMS {counter.parts === 1 ? "parte" : "partes"} (
-          {counter.segmentSize} por parte)
+          {counter.length} carateres · {counter.parts} {counter.parts === 1 ? "parte" : "partes"} de SMS (
+          {counter.segmentSize} carateres por parte)
         </p>
         <SmsCostWarning text={fullPreview} />
 
@@ -84,16 +98,24 @@ export default function CampaignComposer({
         </div>
       </div>
 
-      <form action={testAction} className="card">
+      <form
+        action={testAction}
+        className="card"
+        noValidate
+        onSubmit={(e) => {
+          if (!requireMessage()) e.preventDefault();
+        }}
+      >
         <h2>Enviar SMS de teste</h2>
         <input type="hidden" name="message" value={message} />
         <label>
           Número de telefone para teste
-          <input type="tel" name="phone" autoComplete="off" required />
+          <input type="tel" name="phone" autoComplete="off" required aria-invalid={testState.field === "phone"} />
           <span className="hint">Número de 9 dígitos.</span>
+          {testState.field === "phone" ? <span className="err" role="alert">{testState.error}</span> : null}
         </label>
 
-        {testState.error ? <p className="err" role="alert">{testState.error}</p> : null}
+        {testState.error && testState.field !== "phone" ? <p className="err" role="alert">{testState.error}</p> : null}
         {testState.ok ? <p className="notice" role="status">{testState.ok}</p> : null}
 
         <div className="actions">
@@ -157,8 +179,10 @@ export default function CampaignComposer({
             <button
               type="button"
               className="btn primary"
-              disabled={recipientCount === 0 || !message.trim()}
-              onClick={() => setConfirming(true)}
+              disabled={recipientCount === 0}
+              onClick={() => {
+                if (requireMessage()) setConfirming(true);
+              }}
             >
               Enviar a todos
             </button>

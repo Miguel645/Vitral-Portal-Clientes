@@ -14,7 +14,8 @@ export type CreateValesState = { error?: string; field?: "value" | "valid_from" 
 
 export async function createVales(_prev: CreateValesState, formData: FormData): Promise<CreateValesState> {
   const discountType = String(formData.get("discount_type") ?? "");
-  const value = Number(String(formData.get("value") ?? "").trim().replace(",", "."));
+  const valueRaw = String(formData.get("value") ?? "").trim();
+  const value = Number(valueRaw.replace(",", "."));
   // Typed as dd/mm/aaaa, stored as ISO dates.
   const validFrom = parseDisplayDate(String(formData.get("valid_from") ?? ""));
   const validTo = parseDisplayDate(String(formData.get("valid_to") ?? ""));
@@ -28,11 +29,17 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
   if (discountType !== "percent" && discountType !== "amount") {
     return { error: "Escolha se o vale é uma percentagem ou um valor em euros." };
   }
-  if (discountType === "percent" && (!Number.isFinite(value) || value < 1 || value > 100)) {
-    return { error: "Indique uma percentagem entre 1 e 100.", field: "value" };
+  if (discountType === "percent" && (!valueRaw || !Number.isFinite(value) || value < 1 || value > 100)) {
+    return {
+      error: valueRaw ? "A percentagem tem de ser um número de 1 a 100." : "Escreva a percentagem de desconto.",
+      field: "value",
+    };
   }
-  if (discountType === "amount" && (!Number.isFinite(value) || value <= 0 || value > 10000)) {
-    return { error: "Indique um valor em euros maior que zero.", field: "value" };
+  if (discountType === "amount" && (!valueRaw || !Number.isFinite(value) || value <= 0 || value > 10000)) {
+    return {
+      error: valueRaw ? "O valor tem de ser um número maior que zero." : "Escreva o valor do desconto em euros.",
+      field: "value",
+    };
   }
   if (!validFrom) return { error: INVALID_DATE, field: "valid_from" };
   if (!validTo) return { error: INVALID_DATE, field: "valid_to" };
@@ -40,13 +47,16 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
     return { error: "A data “Válido até” tem de ser igual ou depois de “Válido a partir de”.", field: "valid_to" };
   }
   if (!Number.isInteger(perClient) || perClient < 1 || perClient > 10) {
-    return { error: "Indique quantos vales por cliente, entre 1 e 10.", field: "per_client" };
+    return { error: "Escreva quantos vales para cada cliente, de 1 a 10.", field: "per_client" };
   }
   if (target !== "pick" && target !== "all") {
     return { error: "Escolha para quem são os vales." };
   }
   if (target === "pick" && pickedIds.size === 0) {
     return { error: "Escolha pelo menos um cliente, ou escolha “Todos os clientes”.", field: "clients" };
+  }
+  if (withSms && !smsText) {
+    return { error: "Escreva a mensagem do SMS.", field: "sms_text" };
   }
   if (withSms && !smsText.includes("{{codigo}}")) {
     return { error: "A mensagem tem de incluir {{codigo}}, para o cliente receber o código do vale.", field: "sms_text" };

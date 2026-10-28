@@ -30,10 +30,13 @@ function parse(formData: FormData) {
   let error = "";
   let field: ClientFormState["field"];
   if (!values.name) {
-    error = "Indique o nome do cliente.";
+    error = "Escreva o nome do cliente.";
     field = "name";
+  } else if (!values.phone) {
+    error = "Escreva o telemóvel do cliente.";
+    field = "phone";
   } else if (!normalizePhone(values.phone).ok) {
-    error = "Indique um telemóvel de 9 dígitos começado por 9, ou um número estrangeiro começado por +.";
+    error = "O telemóvel tem de ter 9 dígitos e começar por 9 (ou começar por +, se for estrangeiro).";
     field = "phone";
   } else if (values.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.email)) {
     error = "Esse endereço de email não parece correto. Verifique e tente novamente.";

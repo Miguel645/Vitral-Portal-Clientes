@@ -2,17 +2,21 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { sendSms } from "@/lib/sms";
+import { normalizePhone } from "@/lib/phone";
 import { clientFirstName, composeMessage } from "@/lib/smsText";
 
-export type TestSmsState = { ok?: string; error?: string };
+export type TestSmsState = { ok?: string; error?: string; field?: "message" | "phone" };
 
 export async function sendTestSms(_prev: TestSmsState, formData: FormData): Promise<TestSmsState> {
   const phone = String(formData.get("phone") ?? "").trim();
   const message = String(formData.get("message") ?? "");
   const appUrl = process.env.APP_URL ?? "";
 
-  if (!message.trim()) return { error: "Escreva a mensagem antes de enviar o teste." };
-  if (!phone) return { error: "Indique um número de telefone para o teste." };
+  if (!message.trim()) return { error: "Escreva a mensagem.", field: "message" };
+  if (!phone) return { error: "Escreva o número de telefone para o teste.", field: "phone" };
+  if (!normalizePhone(phone).ok) {
+    return { error: "O telemóvel tem de ter 9 dígitos e começar por 9 (ou começar por +, se for estrangeiro).", field: "phone" };
+  }
 
   // Not a real client's token: the link in a test SMS opens "Link inválido".
   const testToken = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
@@ -31,7 +35,7 @@ const BATCH = 10;
 export async function sendCampaign(_prev: SendAllState, formData: FormData): Promise<SendAllState> {
   const message = String(formData.get("message") ?? "");
   const appUrl = process.env.APP_URL ?? "";
-  if (!message.trim()) return { error: "Escreva a mensagem antes de enviar." };
+  if (!message.trim()) return { error: "Escreva a mensagem." };
 
   const supabase = await createClient();
   // Only clients who want to receive messages, never anyone else.

@@ -13,7 +13,7 @@ export default function SettingsForm({
   const err = (f: SettingsState["field"]) => (state.field === f ? state.error : undefined);
 
   return (
-    <form action={formAction} className="card" key={JSON.stringify(v ?? null)}>
+    <form action={formAction} className="card" key={JSON.stringify(v ?? null)} noValidate>
       <h2>Vale de aniversário</h2>
       <label className="check">
         <input type="checkbox" name="active" defaultChecked={v?.active ?? settings.active} aria-describedby="active-hint" />

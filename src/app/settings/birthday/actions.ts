@@ -14,10 +14,10 @@ function parse(formData: FormData) {
   let error = "";
   let field: SettingsState["field"];
   if (!Number.isFinite(percent) || percent < 1 || percent > 100) {
-    error = "Indique uma percentagem entre 1 e 100.";
+    error = percentRaw ? "A percentagem tem de ser um número de 1 a 100." : "Escreva a percentagem de desconto.";
     field = "percent";
   } else if (!Number.isInteger(validDays) || validDays < 1) {
-    error = "Indique um número de dias válido (1 ou mais).";
+    error = validDaysRaw ? "Os dias têm de ser um número inteiro, 1 ou mais." : "Escreva quantos dias dura o vale.";
     field = "valid_days";
   }
 

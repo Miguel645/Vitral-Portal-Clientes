@@ -4,12 +4,12 @@ import { useEffect, useRef } from "react";
 
 // The code box at the till: no auto-correct or auto-capitals from phone keyboards,
 // and the last code is selected so the next one can be typed straight over it.
-export default function CodeInput({ defaultValue }: { defaultValue: string }) {
+export default function CodeInput({ defaultValue, invalid }: { defaultValue: string; invalid?: boolean }) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     ref.current?.focus();
     ref.current?.select();
-  }, [defaultValue]);
+  }, [defaultValue, invalid]);
 
   return (
     <input
@@ -23,7 +23,8 @@ export default function CodeInput({ defaultValue }: { defaultValue: string }) {
       autoCorrect="off"
       autoComplete="off"
       spellCheck={false}
-      aria-describedby="code-hint"
+      aria-invalid={invalid}
+      aria-describedby={invalid ? "code-hint code-err" : "code-hint"}
       style={{ textTransform: "uppercase" }}
       required
     />
