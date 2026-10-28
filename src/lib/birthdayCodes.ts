@@ -2,7 +2,7 @@ import { createAdminClient } from "./supabase/admin";
 import { generateUniqueCode } from "./codes";
 import { lisbonToday, addDays, isLeapYear, formatDate } from "./date";
 import { formatDiscount } from "./discount";
-import { sendSms } from "./sms";
+import { sendSms } from "./messaging";
 import { clientFirstName, composeValeMessage } from "./smsText";
 
 // No accents outside the cheap GSM-7 set (é is fine), so it stays a 160-character SMS.
@@ -80,7 +80,7 @@ export async function runBirthdayCheck(): Promise<{ created: number; smsSent: nu
       appUrl,
       client.short_token
     );
-    const result = await sendSms(client.phone, text, client.id, supabase);
+    const result = await sendSms(client.phone, text, { clientId: client.id, db: supabase });
     if (result.ok) smsSent++;
     else smsFailed++;
   }

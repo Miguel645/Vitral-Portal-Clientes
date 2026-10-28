@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { isSimulation } from "@/lib/messaging/mode";
 import { clientFirstName } from "@/lib/smsText";
 import CampaignComposer from "../CampaignComposer";
 
@@ -23,7 +24,7 @@ export default async function NewCampaignPage() {
       <CampaignComposer
         recipientNames={(data ?? []).map((c) => clientFirstName(c.name))}
         appUrl={process.env.APP_URL ?? ""}
-        simulated={process.env.SMS_MODE !== "twilio"}
+        simulated={isSimulation()}
       />
     </main>
   );

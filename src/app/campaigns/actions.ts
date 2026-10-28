@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { sendSms } from "@/lib/sms";
+import { isSimulation, sendSms } from "@/lib/messaging";
 import { normalizePhone } from "@/lib/phone";
 import { clientFirstName, composeMessage } from "@/lib/smsText";
 
@@ -22,8 +22,8 @@ export async function sendTestSms(_prev: TestSmsState, formData: FormData): Prom
   const testToken = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
   const finalText = composeMessage(message, "Cliente Teste", appUrl, testToken);
 
-  const result = await sendSms(phone, finalText);
-  return result.ok ? { ok: "SMS de teste enviado com sucesso." } : { error: result.error };
+  const result = await sendSms(phone, finalText, { isTest: true });
+  return result.ok ? { ok: "SMS de teste enviado com sucesso." } : { error: result.error ?? undefined };
 }
 
 export type SendAllState = { result?: string; error?: string };
@@ -54,7 +54,7 @@ export async function sendCampaign(_prev: SendAllState, formData: FormData): Pro
   for (let i = 0; i < recipients.length; i += BATCH) {
     const results = await Promise.all(
       recipients.slice(i, i + BATCH).map((c) =>
-        sendSms(c.phone, composeMessage(message, clientFirstName(c.name), appUrl, c.short_token), c.id)
+        sendSms(c.phone, composeMessage(message, clientFirstName(c.name), appUrl, c.short_token), { clientId: c.id })
       )
     );
     for (const r of results) {
@@ -63,7 +63,7 @@ export async function sendCampaign(_prev: SendAllState, formData: FormData): Pro
     }
   }
 
-  const simulated = process.env.SMS_MODE !== "twilio";
+  const simulated = isSimulation();
   const parts = [
     simulated
       ? `${sent} SMS simulados (modo de teste, nada foi enviado de verdade).`

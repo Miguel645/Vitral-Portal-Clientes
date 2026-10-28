@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateUniqueCodes } from "@/lib/codes";
 import { formatDiscount } from "@/lib/discount";
 import { formatDate, INVALID_DATE, parseDisplayDate } from "@/lib/date";
-import { sendSms } from "@/lib/sms";
+import { isSimulation, sendSms } from "@/lib/messaging";
 import { safeBack } from "./status";
 import { clientFirstName, composeValeMessage } from "@/lib/smsText";
 
@@ -125,7 +125,7 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
         appUrl,
         c.short_token
       );
-      const result = await sendSms(c.phone, text, c.id);
+      const result = await sendSms(c.phone, text, { clientId: c.id });
       if (result.ok) sent++;
       else failed++;
     }
@@ -140,7 +140,7 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
     );
   }
   if (withSms) {
-    const simulated = process.env.SMS_MODE !== "twilio";
+    const simulated = isSimulation();
     parts.push(
       `${sent} SMS ${simulated ? "simulados (modo de teste, nada foi enviado de verdade)" : "enviados"}.`
     );
