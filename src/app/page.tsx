@@ -5,6 +5,7 @@ import { formatPhone } from "@/lib/phone";
 import { clientSearchFilter } from "@/lib/clientSearch";
 import Notice from "@/app/_components/Notice";
 import Pager, { PAGE_SIZE, pageFromParam } from "@/app/_components/Pager";
+import ClientSearch from "@/app/_components/ClientSearch";
 
 type Client = {
   id: string;
@@ -73,10 +74,7 @@ export default async function ClientsPage({
       <Notice message={message} clear={["saved"]} />
 
       <div className="bar">
-        <form method="get">
-          <input type="search" name="q" defaultValue={q} placeholder="Procurar por nome, telefone ou email" aria-label="Procurar clientes" />
-          <button className="btn" type="submit">Procurar</button>
-        </form>
+        <ClientSearch q={q} />
       </div>
 
       {rows.length === 0 && !pinned ? (

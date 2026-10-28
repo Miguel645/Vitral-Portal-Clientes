@@ -7,6 +7,7 @@ import { formatDate, parseDisplayDate } from "@/lib/date";
 import DateInput from "@/app/_components/DateInput";
 import SmsCostWarning from "@/app/_components/SmsCostWarning";
 import { formatPhone } from "@/lib/phone";
+import { matchesClientSearch } from "@/lib/clientSearch";
 import { clientFirstName, composeValeMessage, countSmsParts, PREVIEW_TOKEN } from "@/lib/smsText";
 
 type Client = { id: string; name: string; phone: string; consent: boolean };
@@ -79,19 +80,28 @@ export default function NewValesForm({
   const term = search.trim();
   // Shown only once the database answered for what's typed now.
   const upToDate = results.term === term;
-  const shown = upToDate ? results.clients.filter((c) => !selectedIds.includes(c.id)) : [];
+  // While the database answers for a longer text, narrow the results already on screen
+  // so the list reacts to every letter straight away.
+  const narrowing = !upToDate && results.term !== "" && term.toLowerCase().startsWith(results.term.toLowerCase());
+  const shown =
+    upToDate || narrowing
+      ? results.clients.filter((c) => !selectedIds.includes(c.id) && (upToDate || matchesClientSearch(c, term)))
+      : [];
   const showDropdown = open && term !== "";
 
-  // Ask the database a moment after typing stops; an older answer arriving late is ignored.
+  // Ask the database straight away for the first letter, then a moment after typing
+  // pauses (server actions run one at a time, so asking on every key would queue up);
+  // an older answer arriving late is ignored.
+  const firstLetter = term.length === 1;
   useEffect(() => {
     if (!term) return;
     const seq = ++searchSeq.current;
     const timer = setTimeout(async () => {
       const found = await searchClients(term, selectedIds, MAX_RESULTS).catch(() => ({ clients: [], total: 0 }));
       if (seq === searchSeq.current) setResults({ term, ...found });
-    }, 250);
+    }, firstLetter ? 0 : 100);
     return () => clearTimeout(timer);
-  }, [term, selectedIds]);
+  }, [term, selectedIds, firstLetter]);
 
   // After a failed save, take the person to the field the error is about (it may be far up the page).
   useEffect(() => {
@@ -338,7 +348,7 @@ export default function NewValesForm({
                 />
                 {showDropdown ? (
                   <ul id="client-options" role="listbox" className="combo-list">
-                    {!upToDate ? (
+                    {!upToDate && (!narrowing || shown.length === 0) ? (
                       <li className="combo-empty">A procurar…</li>
                     ) : shown.length === 0 ? (
                       <li className="combo-empty">Nenhum cliente encontrado.</li>
