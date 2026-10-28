@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/date";
+import { formatPhone } from "@/lib/phone";
 
 type LogRow = {
   id: string;
@@ -8,6 +9,8 @@ type LogRow = {
   body: string;
   status: string;
   created_at: string;
+  // Null when the SMS was a test or the client has since been deleted.
+  clients: { name: string } | null;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -20,11 +23,11 @@ export default async function CampaignsLogPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("sms_log")
-    .select("id, to_phone, body, status, created_at")
+    .select("id, to_phone, body, status, created_at, clients(name)")
     .order("created_at", { ascending: false })
     .limit(50);
 
-  const rows = (data ?? []) as LogRow[];
+  const rows = (data ?? []) as unknown as LogRow[];
 
   return (
     <main className="page-wide">
@@ -40,7 +43,9 @@ export default async function CampaignsLogPage() {
           {rows.map((r) => (
             <li key={r.id} className="list-row">
               <div>
-                <div className="name">{r.to_phone}</div>
+                <div className="name">
+                  {r.clients?.name ? `${r.clients.name} · ${formatPhone(r.to_phone)}` : formatPhone(r.to_phone)}
+                </div>
                 <div className="meta">
                   {formatDateTime(r.created_at)} · {r.body}
                 </div>
