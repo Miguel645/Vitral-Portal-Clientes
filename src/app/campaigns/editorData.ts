@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { normalizePhone } from "@/lib/phone";
 import { clientFirstName } from "@/lib/smsText";
+import { unsubscribeBaseUrl } from "@/lib/optOut";
 import { addDays, lisbonToday } from "@/lib/date";
 
 // What CampaignEditor needs besides the campaign itself.
@@ -15,7 +16,7 @@ export async function loadEditorData() {
   return {
     recipients: clients.map((c) => ({ firstName: clientFirstName(c.name), valid: c.valid })),
     previewClient: first ? { name: first.name, firstName: clientFirstName(first.name), token: first.short_token } : null,
-    appUrl: process.env.APP_URL ?? "",
+    appUrl: unsubscribeBaseUrl(),
     testPhone: process.env.TEST_PHONE_NUMBER ?? "",
     today,
     defaultValidTo: addDays(today, 30),

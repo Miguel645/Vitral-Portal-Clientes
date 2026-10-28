@@ -4,6 +4,7 @@ import { lisbonToday, addDays, isLeapYear, formatDate } from "./date";
 import { formatDiscount } from "./discount";
 import { sendSms } from "./messaging";
 import { clientFirstName, composeValeMessage } from "./smsText";
+import { unsubscribeBaseUrl } from "./optOut";
 
 // No accents outside the cheap GSM-7 set (é is fine), so it stays a 160-character SMS.
 export const BIRTHDAY_SMS_TEMPLATE =
@@ -13,7 +14,7 @@ export async function runBirthdayCheck(): Promise<{ created: number; smsSent: nu
   const supabase = createAdminClient();
   const today = lisbonToday();
   const [todayY, todayM, todayD] = today.split("-").map(Number);
-  const appUrl = process.env.APP_URL ?? "";
+  const appUrl = unsubscribeBaseUrl();
 
   const { data: settings } = await supabase
     .from("birthday_settings")

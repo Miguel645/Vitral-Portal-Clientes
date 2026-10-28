@@ -74,8 +74,10 @@ export function renderValeTemplate(
 // Placeholder token for on-screen previews (the real one is per client).
 export const PREVIEW_TOKEN = "a1b2c3d4";
 
-// `token` is the client's short_token (8 characters).
-export function unsubscribeFooter(appUrl: string, token: string): string {
+// `token` is the client's short_token (8 characters). `appUrl` is null when the
+// link is switched off (SMS_UNSUBSCRIBE_LINK=off, see src/lib/optOut.ts).
+export function unsubscribeFooter(appUrl: string | null, token: string): string {
+  if (appUrl === null) return "";
   const base = appUrl.replace(/\/$/, "");
   return `\nPara deixar de receber mensagens: ${base}/u/${token}`;
 }
@@ -85,7 +87,7 @@ export function unsubscribeFooter(appUrl: string, token: string): string {
 export function composeCampaignMessage(
   template: string,
   v: { firstName: string; vale: string },
-  appUrl: string,
+  appUrl: string | null,
   token: string
 ): string {
   return template.split("{nome}").join(v.firstName).split("{vale}").join(v.vale) + unsubscribeFooter(appUrl, token);
@@ -95,7 +97,7 @@ export function composeCampaignMessage(
 export function composeValeMessage(
   template: string,
   v: { firstName: string; codes: string[]; discount: string; validTo: string },
-  appUrl: string,
+  appUrl: string | null,
   token: string
 ): string {
   return renderValeTemplate(template, v) + unsubscribeFooter(appUrl, token);

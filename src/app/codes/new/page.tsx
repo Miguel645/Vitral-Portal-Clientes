@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { addDays, lisbonToday } from "@/lib/date";
+import { unsubscribeBaseUrl } from "@/lib/optOut";
 import NewValesForm from "../NewValesForm";
 
 // Creating vales for every client and sending one SMS each can take a while.
@@ -27,7 +28,7 @@ export default async function NewValesPage({
         preselectedId={client}
         today={today}
         defaultValidTo={addDays(today, 30)}
-        appUrl={process.env.APP_URL ?? ""}
+        appUrl={unsubscribeBaseUrl()}
       />
     </main>
   );

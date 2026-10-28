@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { isSimulation, sendSms, type SendResult } from "@/lib/messaging";
 import { normalizePhone } from "@/lib/phone";
+import { unsubscribeBaseUrl } from "@/lib/optOut";
 import { generateUniqueCodes } from "@/lib/codes";
 import { INVALID_DATE, parseDisplayDate } from "@/lib/date";
 import { clientFirstName, composeCampaignMessage } from "@/lib/smsText";
@@ -142,7 +143,7 @@ async function sendTest(formData: FormData): Promise<CampaignState> {
 
   // Not a real client's token: the link in a test SMS opens "Link inválido".
   const testToken = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
-  const text = composeCampaignMessage(smsText, { firstName: "Teste", vale: TEST_VALE }, process.env.APP_URL ?? "", testToken);
+  const text = composeCampaignMessage(smsText, { firstName: "Teste", vale: TEST_VALE }, unsubscribeBaseUrl(), testToken);
 
   const result = await sendSms(phone, text, { isTest: true, campaignId: id || undefined });
   if (!result.ok) return { error: result.error ?? "Não foi possível enviar o SMS de teste. Tente novamente.", intent };
@@ -224,7 +225,7 @@ async function sendToAll(
     }
   }
 
-  const appUrl = process.env.APP_URL ?? "";
+  const appUrl = unsubscribeBaseUrl();
   const counts = { ok: 0, failed: 0, skipped: 0 };
   for (let i = 0; i < recipients.length; i += BATCH) {
     if (i > 0) await new Promise((r) => setTimeout(r, PAUSE_MS));
