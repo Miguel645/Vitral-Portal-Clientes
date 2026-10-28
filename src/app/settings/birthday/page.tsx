@@ -27,8 +27,8 @@ export default async function BirthdaySettingsPage({
       <form action={runBirthdayCheckNow} className="card">
         <h2>Testar agora</h2>
         <p className="meta" style={{ marginBottom: "var(--sp-16)" }}>
-          Cria um vale de aniversário para quem faz anos hoje e quer receber mensagens. Pode usar este botão
-          quantas vezes quiser, sem criar vales a mais.
+          Cria um vale de aniversário para quem faz anos hoje e quer receber mensagens, e envia-lhe um SMS com o
+          código. Pode usar este botão quantas vezes quiser, sem criar vales nem enviar SMS a mais.
         </p>
         <div className="actions">
           <SubmitButton className="btn" pendingText="A criar…">Criar vales de aniversário agora</SubmitButton>

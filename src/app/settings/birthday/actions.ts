@@ -51,9 +51,15 @@ export async function saveBirthdaySettings(_prev: SettingsState, formData: FormD
 
 export async function runBirthdayCheckNow() {
   const result = await runBirthdayCheck();
-  const message =
-    result.created === 0
-      ? "Não há vales novos para criar hoje."
-      : `Foram criados ${result.created} ${result.created === 1 ? "vale" : "vales"} de aniversário.`;
+  const parts: string[] = [];
+  if (result.created === 0) {
+    parts.push("Não há vales novos para criar hoje.");
+  } else {
+    parts.push(`Foram criados ${result.created} ${result.created === 1 ? "vale" : "vales"} de aniversário.`);
+    const simulated = process.env.SMS_MODE !== "twilio";
+    parts.push(`${result.smsSent} SMS ${simulated ? "simulados (modo de teste, nada foi enviado de verdade)" : "enviados"}.`);
+    if (result.smsFailed > 0) parts.push(`${result.smsFailed} SMS falharam — veja o registo de SMS em Campanhas.`);
+  }
+  const message = parts.join(" ");
   redirect(`/settings/birthday?message=${encodeURIComponent(message)}`);
 }

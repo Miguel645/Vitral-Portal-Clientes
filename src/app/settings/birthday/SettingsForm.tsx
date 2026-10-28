@@ -20,7 +20,7 @@ export default function SettingsForm({
         <span>Criar vales de aniversário automaticamente</span>
       </label>
       <p className="hint" id="active-hint" style={{ marginTop: "calc(var(--sp-8) * -1)", marginBottom: "var(--sp-24)" }}>
-        Só são criados vales de aniversário para clientes que querem receber mensagens.
+        Só para clientes que querem receber mensagens. Cada um recebe um SMS com o código.
       </p>
       <label>
         Percentagem de desconto

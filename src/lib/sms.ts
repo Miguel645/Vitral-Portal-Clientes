@@ -1,16 +1,19 @@
 import "server-only";
 import twilio from "twilio";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "./supabase/server";
 import { normalizePhone } from "./phone";
 
 export type SendSmsResult = { ok: true } | { ok: false; error: string };
 
-export async function sendSms(to: string, text: string, clientId?: string): Promise<SendSmsResult> {
+// `db` is only needed where there's no signed-in session (the birthday cron job),
+// which passes the admin client so the message can still be logged.
+export async function sendSms(to: string, text: string, clientId?: string, db?: SupabaseClient): Promise<SendSmsResult> {
   const normalized = normalizePhone(to);
   if (!normalized.ok) return { ok: false, error: normalized.error };
 
   const mode = process.env.SMS_MODE === "twilio" ? "twilio" : "simulate";
-  const supabase = await createClient();
+  const supabase = db ?? (await createClient());
 
   if (mode === "simulate") {
     await supabase.from("sms_log").insert({
