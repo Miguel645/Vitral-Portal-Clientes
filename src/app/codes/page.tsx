@@ -2,13 +2,16 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { codeStatus, type StatusKey } from "./status";
 import { formatDate, lisbonToday } from "@/lib/date";
+import { formatDiscount, KIND_LABEL } from "@/lib/discount";
 import { markCodeUsed } from "./actions";
 
 type Row = {
   id: string;
   code: string;
-  kind: "birthday" | "promotion";
-  percent: number;
+  kind: "birthday" | "manual";
+  percent: number | null;
+  amount_eur: number | null;
+  note: string | null;
   valid_from: string;
   valid_to: string;
   used_at: string | null;
@@ -16,7 +19,6 @@ type Row = {
   clients: { name: string } | null;
 };
 
-const KIND_LABEL: Record<string, string> = { birthday: "Aniversário", promotion: "Promoção" };
 
 const FILTERS: { key: string; label: string }[] = [
   { key: "all", label: "Todos" },
@@ -36,7 +38,7 @@ export default async function CodesPage({
 
   const { data } = await supabase
     .from("discount_codes")
-    .select("id, code, kind, percent, valid_from, valid_to, used_at, client_id, clients(name)")
+    .select("id, code, kind, percent, amount_eur, note, valid_from, valid_to, used_at, client_id, clients(name)")
     .order("created_at", { ascending: false });
 
   const rows = ((data ?? []) as unknown as Row[]).map((r) => ({ ...r, status: codeStatus(r, today) }));
@@ -49,6 +51,7 @@ export default async function CodesPage({
     <main className="page-wide">
       <header className="top">
         <h1>Vales</h1>
+        <Link href="/codes/new" className="btn primary">Criar vales</Link>
       </header>
 
       {message ? <p className="notice">{message}</p> : null}
@@ -70,7 +73,7 @@ export default async function CodesPage({
               <div>
                 <div className="name">{c.code}</div>
                 <div className="meta">
-                  {KIND_LABEL[c.kind]} · {c.percent}% · {c.clients?.name ?? "Sem cliente"} · {formatDate(c.valid_from)} a{" "}
+                  {KIND_LABEL[c.kind] ?? c.kind}{c.note ? ` · ${c.note}` : ""} · {formatDiscount(c)} · {c.clients?.name ?? "Sem cliente"} · {formatDate(c.valid_from)} a{" "}
                   {formatDate(c.valid_to)}
                 </div>
               </div>

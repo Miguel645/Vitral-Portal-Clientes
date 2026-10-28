@@ -28,6 +28,18 @@ export function renderTemplate(template: string, firstName: string): string {
   return template.split("{{name}}").join(firstName);
 }
 
+// Vale SMS: {{name}}, {{codigo}} (several codes are joined with commas),
+// {{desconto}} ("10%" / "5,00 €") and {{validade}} (dd/mm/aaaa).
+export function renderValeTemplate(
+  template: string,
+  v: { firstName: string; codes: string[]; discount: string; validTo: string }
+): string {
+  return renderTemplate(template, v.firstName)
+    .split("{{codigo}}").join(v.codes.join(", "))
+    .split("{{desconto}}").join(v.discount)
+    .split("{{validade}}").join(v.validTo);
+}
+
 export function unsubscribeFooter(appUrl: string, token: string): string {
   const base = appUrl.replace(/\/$/, "");
   return `\nPara deixar de receber mensagens: ${base}/u/${token}`;

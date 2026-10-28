@@ -1,12 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { codeStatus } from "@/app/codes/status";
 import { formatDate } from "@/lib/date";
+import { formatDiscount } from "@/lib/discount";
 import { markUsedAtCounter } from "../actions";
 
 type Found = {
   id: string;
   code: string;
-  percent: number;
+  percent: number | null;
+  amount_eur: number | null;
   valid_from: string;
   valid_to: string;
   used_at: string | null;
@@ -26,7 +28,7 @@ export default async function VerificarValePage({
   if (term) {
     const { data } = await supabase
       .from("discount_codes")
-      .select("id, code, percent, valid_from, valid_to, used_at, clients(name)")
+      .select("id, code, percent, amount_eur, valid_from, valid_to, used_at, clients(name)")
       .eq("code", term.toUpperCase())
       .maybeSingle();
     found = data as unknown as Found | null;
@@ -67,7 +69,7 @@ export default async function VerificarValePage({
         status.key === "active" ? (
           <>
             <div className="result-box ok">
-              Válido: {found.percent}% de desconto, até {formatDate(found.valid_to)}.
+              Válido: {formatDiscount(found)} de desconto, até {formatDate(found.valid_to)}.
               {found.clients?.name ? ` Cliente: ${found.clients.name}.` : ""}
             </div>
             <form action={markUsedAtCounter}>

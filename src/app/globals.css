@@ -221,6 +221,7 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
 
 .notice { color: var(--accent); font-size: 1rem; font-weight: 500; margin: 0; }
 .empty { padding: var(--sp-32) var(--sp-16); text-align: center; color: var(--muted); font-size: 1rem; }
+.form-stack { display: grid; gap: var(--sp-32); }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: var(--sp-24); }
 label { display: block; margin-bottom: var(--sp-24); font-size: 1rem; color: var(--ink); font-weight: 500; }
 label input, label select, label textarea { margin-top: var(--sp-8); color: var(--ink); font-weight: 400; }

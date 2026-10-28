@@ -54,36 +54,15 @@ create policy "Signed-in users manage birthday settings"
   using (true)
   with check (true);
 
-create table if not exists public.promotions (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  condition text,
-  discount_percent numeric not null check (discount_percent >= 1 and discount_percent <= 100),
-  reward_valid_from date not null,
-  reward_valid_to date not null,
-  active boolean not null default true,
-  created_at timestamptz not null default now(),
-  constraint promotions_reward_window check (reward_valid_from <= reward_valid_to)
-);
-
-alter table public.promotions enable row level security;
-
-drop policy if exists "Anyone can manage promotions" on public.promotions;
-drop policy if exists "Signed-in users manage promotions" on public.promotions;
-create policy "Signed-in users manage promotions"
-  on public.promotions
-  for all
-  to authenticated
-  using (true)
-  with check (true);
-
+-- Kind and discount checks are added further down (see "Promotions removed").
 create table if not exists public.discount_codes (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
-  kind text not null check (kind in ('birthday', 'promotion')),
-  percent numeric not null check (percent >= 1 and percent <= 100),
+  kind text not null,
+  percent numeric,
+  amount_eur numeric,
+  note text,
   client_id uuid references public.clients(id) on delete set null,
-  promotion_id uuid references public.promotions(id) on delete set null,
   valid_from date not null,
   valid_to date not null,
   used_at timestamptz,
@@ -137,17 +116,26 @@ alter table public.discount_codes drop column if exists purchase_id;
 
 drop table if exists public.purchases;
 
--- 'spend' vales are now just called 'promotion' vales (no purchase_id left).
-update public.discount_codes set kind = 'promotion' where kind = 'spend';
+-- Promotions removed: vales are created directly, with either a percentage
+-- or a fixed euro amount, for one, several or all clients. Vales already
+-- created from a promotion are kept and stay valid.
+alter table public.discount_codes drop column if exists promotion_id;
+drop table if exists public.promotions;
 
+alter table public.discount_codes add column if not exists amount_eur numeric;
+alter table public.discount_codes add column if not exists note text;
+alter table public.discount_codes alter column percent drop not null;
+
+-- Each vale is either a percentage (1-100) or a euro amount (> 0), never both.
+alter table public.discount_codes drop constraint if exists discount_codes_percent_check;
+alter table public.discount_codes drop constraint if exists discount_codes_discount_check;
+alter table public.discount_codes add constraint discount_codes_discount_check check (
+  (percent is not null and amount_eur is null and percent >= 1 and percent <= 100)
+  or (percent is null and amount_eur is not null and amount_eur > 0)
+);
+
+-- Vale kinds: 'birthday' (automatic) and 'manual' (created by hand).
 alter table public.discount_codes drop constraint if exists discount_codes_kind_check;
+update public.discount_codes set kind = 'manual' where kind in ('spend', 'promotion');
 alter table public.discount_codes add constraint discount_codes_kind_check
-  check (kind in ('birthday', 'promotion'));
-
--- Promotions are now simple vale templates: no earn window or minimum spend,
--- just a plain-text condition shown to staff (not enforced by the app).
-alter table public.promotions drop constraint if exists promotions_earn_window;
-alter table public.promotions drop column if exists earn_from;
-alter table public.promotions drop column if exists earn_to;
-alter table public.promotions drop column if exists min_spend;
-alter table public.promotions add column if not exists condition text;
+  check (kind in ('birthday', 'manual'));

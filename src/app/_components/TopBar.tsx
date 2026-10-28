@@ -9,7 +9,6 @@ const LINKS = [
   { href: "/balcao", label: "Balcão", section: "/balcao" },
   { href: "/", label: "Clientes", section: "/" },
   { href: "/codes", label: "Vales", section: "/codes" },
-  { href: "/promotions", label: "Promoções", section: "/promotions" },
   { href: "/campaigns/new", label: "Campanhas", section: "/campaigns" },
   { href: "/settings/birthday", label: "Definições", section: "/settings" },
 ] as const;

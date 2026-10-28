@@ -8,7 +8,7 @@ export default function BalcaoPage() {
       </header>
 
       <div className="cards-grid">
-        <Link href="/balcao/criar-vale" className="btn primary balcao-btn">Criar vale</Link>
+        <Link href="/codes/new" className="btn primary balcao-btn">Criar vale</Link>
         <Link href="/balcao/verificar" className="btn balcao-btn">Verificar vale</Link>
       </div>
     </main>

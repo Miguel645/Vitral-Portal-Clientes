@@ -1,16 +1,19 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ClientForm from "../ClientForm";
 import { codeStatus } from "../../codes/status";
 import { formatDate } from "@/lib/date";
+import { formatDiscount, KIND_LABEL } from "@/lib/discount";
 
-const KIND_LABEL: Record<string, string> = { birthday: "Aniversário", promotion: "Promoção" };
 
 type Vale = {
   id: string;
   code: string;
-  kind: "birthday" | "promotion";
-  percent: number;
+  kind: "birthday" | "manual";
+  percent: number | null;
+  amount_eur: number | null;
+  note: string | null;
   valid_from: string;
   valid_to: string;
   used_at: string | null;
@@ -31,7 +34,7 @@ export default async function EditClientPage({
     supabase.from("clients").select("id, name, phone, email, birth_date, consent").eq("id", id).maybeSingle(),
     supabase
       .from("discount_codes")
-      .select("id, code, kind, percent, valid_from, valid_to, used_at")
+      .select("id, code, kind, percent, amount_eur, note, valid_from, valid_to, used_at")
       .eq("client_id", id)
       .order("created_at", { ascending: false }),
   ]);
@@ -57,7 +60,7 @@ export default async function EditClientPage({
                     <div>
                       <div className="name">{v.code}</div>
                       <div className="meta">
-                        {KIND_LABEL[v.kind]} · {v.percent}% · {formatDate(v.valid_from)} a {formatDate(v.valid_to)}
+                        {KIND_LABEL[v.kind] ?? v.kind}{v.note ? ` · ${v.note}` : ""} · {formatDiscount(v)} · {formatDate(v.valid_from)} a {formatDate(v.valid_to)}
                       </div>
                     </div>
                     <span className={`tag${status.key === "active" ? " on" : " warn"}`}>{status.label}</span>
@@ -66,6 +69,9 @@ export default async function EditClientPage({
               })}
             </ul>
           )}
+          <div className="actions" style={{ justifyContent: "flex-start" }}>
+            <Link href={`/codes/new?client=${client.id}`} className="btn">Criar vale para este cliente</Link>
+          </div>
         </div>
       </div>
     </main>

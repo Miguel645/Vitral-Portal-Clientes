@@ -5,7 +5,7 @@ import { normalizePhone } from "./phone";
 
 export type SendSmsResult = { ok: true } | { ok: false; error: string };
 
-export async function sendSms(to: string, text: string): Promise<SendSmsResult> {
+export async function sendSms(to: string, text: string, clientId?: string): Promise<SendSmsResult> {
   const normalized = normalizePhone(to);
   if (!normalized.ok) return { ok: false, error: normalized.error };
 
@@ -17,6 +17,7 @@ export async function sendSms(to: string, text: string): Promise<SendSmsResult> 
       to_phone: normalized.value,
       body: text,
       status: "simulated",
+      client_id: clientId ?? null,
     });
     return { ok: true };
   }
@@ -41,6 +42,7 @@ export async function sendSms(to: string, text: string): Promise<SendSmsResult> 
       to_phone: normalized.value,
       body: text,
       status: "sent",
+      client_id: clientId ?? null,
     });
     return { ok: true };
   } catch {
@@ -48,6 +50,7 @@ export async function sendSms(to: string, text: string): Promise<SendSmsResult> 
       to_phone: normalized.value,
       body: text,
       status: "failed",
+      client_id: clientId ?? null,
     });
     return { ok: false, error: "Não foi possível enviar o SMS. Tente novamente." };
   }
