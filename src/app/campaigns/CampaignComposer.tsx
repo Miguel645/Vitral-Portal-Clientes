@@ -46,7 +46,6 @@ export default function CampaignComposer({
   }, [sendState]);
 
   const fullPreview = composeMessage(message, PREVIEW_NAME, appUrl, PREVIEW_TOKEN);
-  const counter = countSmsParts(fullPreview);
   const recipientCount = recipientNames.length;
 
   // Each client's first name changes the length, so count every message.
@@ -74,23 +73,12 @@ export default function CampaignComposer({
             rows={4}
             required
             aria-invalid={!!messageError}
-            aria-describedby={messageError ? "campaign-message-hint campaign-message-err" : "campaign-message-hint"}
+            aria-describedby={messageError ? "campaign-message-err" : undefined}
           />
-          <span className="hint" id="campaign-message-hint">
-            Use {"{{name}}"} para o primeiro nome do cliente. O link de cancelamento é adicionado automaticamente no fim.
-          </span>
           {messageError ? <span className="err" id="campaign-message-err" role="alert">{messageError}</span> : null}
         </label>
 
-        <p className="meta">
-          {counter.length} carateres · {counter.parts} {counter.parts === 1 ? "parte" : "partes"} de SMS (
-          {counter.segmentSize} carateres por parte)
-        </p>
         <SmsCostWarning text={fullPreview} />
-
-        <p className="meta">
-          {recipientCount} {recipientCount === 1 ? "cliente vai receber" : "clientes vão receber"} esta mensagem.
-        </p>
 
         <div className="preview">
           <p className="preview-title">Pré-visualização</p>
@@ -138,6 +126,9 @@ export default function CampaignComposer({
       <form action={sendAction} className="card">
         <h2>Enviar a todos</h2>
         <input type="hidden" name="message" value={message} />
+        <p className="name">
+          {recipientCount} {recipientCount === 1 ? "cliente vai receber" : "clientes vão receber"} esta mensagem.
+        </p>
         <p className="meta" style={{ marginBottom: "var(--sp-16)" }}>
           Envia esta mensagem a todos os clientes que querem receber mensagens.
           {simulated ? " Modo de teste: nada é enviado de verdade, as mensagens só ficam no registo." : ""}
