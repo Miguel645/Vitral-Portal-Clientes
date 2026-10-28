@@ -16,6 +16,8 @@ export type SendOptions = {
   campaignId?: string;
   // A test SMS from the campaign page (shown as "Teste" in the history).
   isTest?: boolean;
+  // "welcome" for the welcome SMS (the "Boas-vindas" filter in the send history).
+  kind?: "welcome";
   // Only needed where there's no signed-in session (the birthday cron job),
   // which passes the admin client so the message can still be logged.
   db?: SupabaseClient;
@@ -48,6 +50,7 @@ export async function sendSms(to: string, text: string, opts: SendOptions = {}):
         client_id: opts.clientId ?? null,
         campaign_id: opts.campaignId ?? null,
         is_test: opts.isTest ?? false,
+        ...(opts.kind ? { kind: opts.kind } : {}),
       })
       .select("id")
       .single();

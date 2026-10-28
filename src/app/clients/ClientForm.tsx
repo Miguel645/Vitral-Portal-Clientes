@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { saveClient, type ClientFormState } from "../actions";
 import DateInput from "@/app/_components/DateInput";
-import { formatDateTime } from "@/lib/date";
+import { formatDate, formatDateTime, lisbonDate } from "@/lib/date";
 
 export type ClientValues = {
   id?: string;
@@ -15,6 +15,8 @@ export type ClientValues = {
   consent?: boolean;
   // When the client agreed to receive messages (set by the database).
   consent_at?: string | null;
+  // When the welcome SMS was sent, if it was.
+  welcome_at?: string | null;
 };
 
 export default function ClientForm({ client }: { client?: ClientValues }) {
@@ -108,6 +110,7 @@ export default function ClientForm({ client }: { client?: ClientValues }) {
       <p className="hint" id="consent-hint" style={{ marginTop: "calc(var(--sp-8) * -1)", marginBottom: "var(--sp-24)" }}>
         Só os clientes marcados aqui recebem SMS e vales de aniversário.
         {client?.consent && client.consent_at ? ` Marcado em ${formatDateTime(client.consent_at)}.` : ""}
+        {client?.welcome_at ? ` Boas-vindas enviada em ${formatDate(lisbonDate(client.welcome_at))}.` : ""}
       </p>
       {state.error && !state.field ? <p className="err" role="alert">{state.error}</p> : null}
       <div className="actions">

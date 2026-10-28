@@ -1,10 +1,15 @@
 export function lisbonToday(): string {
+  return lisbonDate(new Date());
+}
+
+// The day (ISO date) a moment falls on in Lisbon, e.g. a timestamp from the database.
+export function lisbonDate(moment: Date | string): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Lisbon",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(new Date());
+  }).formatToParts(new Date(moment));
   const get = (type: string) => parts.find((p) => p.type === type)!.value;
   return `${get("year")}-${get("month")}-${get("day")}`;
 }

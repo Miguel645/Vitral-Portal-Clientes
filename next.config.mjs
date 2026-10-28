@@ -5,6 +5,8 @@ const nextConfig = {
     return [
       { source: "/balcao", destination: "/verificar", permanent: false },
       { source: "/balcao/verificar", destination: "/verificar", permanent: false },
+      // Definições moved from /settings/birthday when the welcome SMS was added.
+      { source: "/settings/birthday", destination: "/settings", permanent: false },
     ];
   },
 };

@@ -47,12 +47,12 @@ export async function saveBirthdaySettings(_prev: SettingsState, formData: FormD
   if (dbError) {
     return { error: "Não foi possível guardar. Verifique os dados e tente novamente.", values };
   }
-  redirect(`/settings/birthday?message=${encodeURIComponent("Definições guardadas.")}`);
+  redirect(`/settings?message=${encodeURIComponent("Definições guardadas.")}`);
 }
 
 export async function runBirthdayCheckNow() {
   const result = await runBirthdayCheck();
-  if (result.error) redirect(`/settings/birthday?message=${encodeURIComponent(result.error)}`);
+  if (result.error) redirect(`/settings?message=${encodeURIComponent(result.error)}`);
   const parts: string[] = [];
   if (result.created === 0) {
     parts.push("Não há vales novos para criar hoje.");
@@ -63,5 +63,5 @@ export async function runBirthdayCheckNow() {
     if (result.smsFailed > 0) parts.push(`${result.smsFailed} SMS falharam — veja o Histórico de envios, em Campanhas.`);
   }
   const message = parts.join(" ");
-  redirect(`/settings/birthday?message=${encodeURIComponent(message)}`);
+  redirect(`/settings?message=${encodeURIComponent(message)}`);
 }

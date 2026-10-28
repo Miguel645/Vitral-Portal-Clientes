@@ -10,6 +10,8 @@ type LogRow = {
   status: string;
   error: string | null;
   is_test: boolean;
+  // "welcome" for the welcome SMS, null for everything else.
+  kind: string | null;
   created_at: string;
   // Null when the SMS was a test or the client has since been deleted.
   clients: { name: string } | null;
@@ -33,9 +35,9 @@ export default async function SendHistoryPage({
   searchParams: Promise<{ campaign?: string; status?: string }>;
 }) {
   const params = await searchParams;
-  // "" = all, "test" = only test SMS, "other" = vale and birthday SMS, or a campaign id.
+  // "" = all, "test" = only test SMS, "welcome" = welcome SMS, "other" = vale and birthday SMS, or a campaign id.
   const campaign =
-    params.campaign === "test" || params.campaign === "other" || /^[0-9a-f-]{36}$/i.test(params.campaign ?? "")
+    ["test", "welcome", "other"].includes(params.campaign ?? "") || /^[0-9a-f-]{36}$/i.test(params.campaign ?? "")
       ? params.campaign!
       : "";
   const status = params.status && STATUS_LABEL[params.status] ? params.status : "";
@@ -43,11 +45,12 @@ export default async function SendHistoryPage({
   const supabase = await createClient();
   let query = supabase
     .from("sms_log")
-    .select("id, to_phone, body, status, error, is_test, created_at, clients(name), campaigns(name)")
+    .select("id, to_phone, body, status, error, is_test, kind, created_at, clients(name), campaigns(name)")
     .order("created_at", { ascending: false })
     .limit(LIMIT);
   if (campaign === "test") query = query.eq("is_test", true);
-  else if (campaign === "other") query = query.is("campaign_id", null).eq("is_test", false);
+  else if (campaign === "welcome") query = query.eq("kind", "welcome");
+  else if (campaign === "other") query = query.is("campaign_id", null).eq("is_test", false).is("kind", null);
   else if (campaign) query = query.eq("campaign_id", campaign).eq("is_test", false);
   if (status) query = query.eq("status", status);
 
@@ -75,6 +78,7 @@ export default async function SendHistoryPage({
             {(campaigns ?? []).map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
+            <option value="welcome">Boas-vindas</option>
             <option value="other">Vales e aniversários</option>
             <option value="test">SMS de teste</option>
           </select>
@@ -108,7 +112,7 @@ export default async function SendHistoryPage({
                     {r.clients?.name ? `${r.clients.name} · ${formatPhone(r.to_phone)}` : formatPhone(r.to_phone)}
                   </div>
                   <div className="meta">
-                    {formatDateTime(r.created_at)} · {r.is_test ? "Teste" : r.campaigns?.name ?? "Vale"}
+                    {formatDateTime(r.created_at)} · {r.is_test ? "Teste" : r.campaigns?.name ?? (r.kind === "welcome" ? "Boas-vindas" : "Vale")}
                   </div>
                   <div className="meta">{r.body}</div>
                   {r.error ? <div className="meta err-text">Motivo: {r.error}</div> : null}
