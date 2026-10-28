@@ -1,31 +1,37 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { createVales, type CreateValesState } from "./actions";
 import { formatDiscount } from "@/lib/discount";
 import { formatDate } from "@/lib/date";
-import { clientFirstName, countSmsParts, renderValeTemplate, unsubscribeFooter } from "@/lib/smsText";
+import { clientFirstName, countSmsParts, renderValeTemplate } from "@/lib/smsText";
 
 type Client = { id: string; name: string; phone: string; consent: boolean };
 
-const DEFAULT_SMS =
-  "Olá {{name}}! Tem um vale de {{desconto}} de desconto na Vitral. Código do vale: {{codigo}}. Válido até {{validade}}.";
-const PREVIEW_CODES = ["ABCD2345", "EFGH6789", "JKLM2345", "NPQR6789", "STUV2345"];
-const PREVIEW_TOKEN = "00000000-0000-0000-0000-000000000000";
-const MAX_RESULTS = 50;
+// The default message follows "Quantos vales para cada cliente?" (singular/plural),
+// as long as the owner hasn't edited it by hand.
+function defaultSms(count: number): string {
+  return count > 1
+    ? `Olá {{name}}! Tem ${count} vales de {{desconto}} de desconto na Vitral. Códigos dos vales: {{codigo}}. Válidos até {{validade}}.`
+    : "Olá {{name}}! Tem um vale de {{desconto}} de desconto na Vitral. Código do vale: {{codigo}}. Válido até {{validade}}.";
+}
+const PREVIEW_CODES = ["ABCD2345", "EFGH6789", "JKLM2345", "NPQR6789", "STUV2345", "WXYZ6789", "ABCD6789", "EFGH2345", "JKLM6789", "NPQR2345"];
+const MAX_RESULTS = 20;
+
+function clampPerClient(v: string): number {
+  return Math.min(Math.max(Number(v) || 1, 1), 10);
+}
 
 export default function NewValesForm({
   clients,
   preselectedId,
   today,
   defaultValidTo,
-  appUrl,
 }: {
   clients: Client[];
   preselectedId?: string;
   today: string;
   defaultValidTo: string;
-  appUrl: string;
 }) {
   const [state, formAction, pending] = useActionState<CreateValesState, FormData>(createVales, {});
 
@@ -40,23 +46,70 @@ export default function NewValesForm({
     preselectedId && clients.some((c) => c.id === preselectedId) ? [preselectedId] : []
   );
   const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const comboRef = useRef<HTMLDivElement>(null);
   const [withSms, setWithSms] = useState(true);
-  const [smsText, setSmsText] = useState(DEFAULT_SMS);
+  const [smsText, setSmsText] = useState(defaultSms(1));
 
   const byId = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const selectedClients = selected.map((id) => byId.get(id)).filter((c): c is Client => !!c);
 
   const term = search.trim().toLowerCase();
   const matches = term
-    ? clients.filter((c) => c.name.toLowerCase().includes(term) || c.phone.replace(/\s/g, "").includes(term.replace(/\s/g, "")))
+    ? clients.filter(
+        (c) =>
+          !selected.includes(c.id) &&
+          (c.name.toLowerCase().includes(term) || c.phone.replace(/\s/g, "").includes(term.replace(/\s/g, "")))
+      )
     : [];
+  const shown = matches.slice(0, MAX_RESULTS);
+  const showDropdown = open && term !== "";
 
-  function toggle(id: string) {
-    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  // Close the dropdown when tapping/clicking anywhere outside it.
+  useEffect(() => {
+    function onPointerDown(e: PointerEvent) {
+      if (comboRef.current && !comboRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, []);
+
+  function remove(id: string) {
+    setSelected((prev) => prev.filter((x) => x !== id));
+  }
+
+  function pick(id: string) {
+    setSelected((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setSearch("");
+    setOpen(false);
+    setHighlight(0);
+  }
+
+  function onSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setOpen(true);
+      setHighlight((h) => Math.min(h + 1, shown.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlight((h) => Math.max(h - 1, 0));
+    } else if (e.key === "Enter") {
+      // Never submit the whole form from the search box.
+      e.preventDefault();
+      if (showDropdown && shown[highlight]) pick(shown[highlight].id);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  }
+
+  function onPerClientChange(v: string) {
+    if (smsText === defaultSms(clampPerClient(perClient))) setSmsText(defaultSms(clampPerClient(v)));
+    setPerClient(v);
   }
 
   const targets = target === "all" ? clients : selectedClients;
-  const perClientNum = Math.min(Math.max(Number(perClient) || 1, 1), 10);
+  const perClientNum = clampPerClient(perClient);
   const valeCount = targets.length * perClientNum;
   const smsCount = withSms ? targets.filter((c) => c.consent).length : 0;
   const noConsentCount = withSms ? targets.length - smsCount : 0;
@@ -68,13 +121,12 @@ export default function NewValesForm({
       : discountType === "percent" ? "10%" : "5,00 €";
 
   const previewName = clientFirstName(targets[0]?.name ?? "Maria");
-  const preview =
-    renderValeTemplate(smsText, {
-      firstName: previewName,
-      codes: PREVIEW_CODES.slice(0, perClientNum),
-      discount: discountText,
-      validTo: validTo ? formatDate(validTo) : "",
-    }) + unsubscribeFooter(appUrl, PREVIEW_TOKEN);
+  const preview = renderValeTemplate(smsText, {
+    firstName: previewName,
+    codes: PREVIEW_CODES.slice(0, perClientNum),
+    discount: discountText,
+    validTo: validTo ? formatDate(validTo) : "",
+  });
   const counter = countSmsParts(preview);
 
   return (
@@ -99,10 +151,12 @@ export default function NewValesForm({
             onChange={(e) => setValue(e.target.value)}
             required
           />
+          <span className="hint">{discountType === "percent" ? "Um número de 1 a 100." : "O valor em euros."}</span>
         </label>
         <label>
           Descrição (opcional)
           <input type="text" name="note" maxLength={80} value={note} onChange={(e) => setNote(e.target.value)} />
+          <span className="hint">Só para si. Não aparece na SMS.</span>
         </label>
       </div>
 
@@ -111,10 +165,12 @@ export default function NewValesForm({
         <label>
           Válido a partir de
           <input type="date" name="valid_from" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} required />
+          <span className="hint">Primeiro dia em que o vale pode ser usado.</span>
         </label>
         <label>
           Válido até
           <input type="date" name="valid_to" value={validTo} onChange={(e) => setValidTo(e.target.value)} required />
+          <span className="hint">Último dia em que o vale pode ser usado.</span>
         </label>
       </div>
 
@@ -145,37 +201,64 @@ export default function NewValesForm({
                         <div className="name">{c.name}</div>
                         <div className="meta">{c.phone}</div>
                       </div>
-                      <button type="button" className="btn" onClick={() => toggle(c.id)}>Tirar</button>
+                      <button type="button" className="btn" onClick={() => remove(c.id)}>Tirar</button>
                     </li>
                   ))}
                 </ul>
               </>
             ) : null}
 
-            <label>
-              Procurar cliente
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Nome ou telemóvel"
-                autoComplete="off"
-              />
-            </label>
-
-            {term && matches.length === 0 ? <p className="meta">Nenhum cliente encontrado para “{search.trim()}”.</p> : null}
-            {matches.slice(0, MAX_RESULTS).map((c) => (
-              <label key={c.id} className="check">
-                <input type="checkbox" checked={selected.includes(c.id)} onChange={() => toggle(c.id)} />
-                <span>
-                  {c.name} — {c.phone}
-                  {!c.consent ? <span className="meta"> · Não recebe mensagens</span> : null}
-                </span>
-              </label>
-            ))}
-            {matches.length > MAX_RESULTS ? (
-              <p className="meta">Mostrando {MAX_RESULTS} de {matches.length}. Escreva mais para encontrar o cliente.</p>
-            ) : null}
+            <div className="combo" ref={comboRef}>
+              <label htmlFor="client-search">Procurar cliente</label>
+              <div className="combo-box">
+                <input
+                  id="client-search"
+                  type="search"
+                  role="combobox"
+                  aria-expanded={showDropdown}
+                  aria-controls="client-options"
+                  aria-autocomplete="list"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setOpen(true);
+                    setHighlight(0);
+                  }}
+                  onFocus={() => setOpen(true)}
+                  onKeyDown={onSearchKeyDown}
+                  placeholder="Nome ou telemóvel"
+                  autoComplete="off"
+                />
+                {showDropdown ? (
+                  <ul id="client-options" role="listbox" className="combo-list">
+                    {shown.length === 0 ? (
+                      <li className="combo-empty">Nenhum cliente encontrado.</li>
+                    ) : (
+                      shown.map((c, i) => (
+                        <li key={c.id} role="option" aria-selected={i === highlight}>
+                          <button
+                            type="button"
+                            className={i === highlight ? "combo-option active" : "combo-option"}
+                            onMouseEnter={() => setHighlight(i)}
+                            onClick={() => pick(c.id)}
+                          >
+                            <span className="name">{c.name}</span>
+                            <span className="meta">
+                              {c.phone}
+                              {!c.consent ? " · Não recebe mensagens" : ""}
+                            </span>
+                          </button>
+                        </li>
+                      ))
+                    )}
+                    {matches.length > MAX_RESULTS ? (
+                      <li className="combo-empty">Escreva mais para ver os outros {matches.length - MAX_RESULTS}.</li>
+                    ) : null}
+                  </ul>
+                ) : null}
+              </div>
+              <span className="hint">Escreva o nome ou o telemóvel e toque no cliente.</span>
+            </div>
           </>
         ) : null}
 
@@ -188,9 +271,10 @@ export default function NewValesForm({
             max="10"
             inputMode="numeric"
             value={perClient}
-            onChange={(e) => setPerClient(e.target.value)}
+            onChange={(e) => onPerClientChange(e.target.value)}
             required
           />
+          <span className="hint">De 1 a 10.</span>
         </label>
       </div>
 
@@ -207,7 +291,7 @@ export default function NewValesForm({
               <textarea name="sms_text" value={smsText} onChange={(e) => setSmsText(e.target.value)} rows={4} required />
               <span className="hint">
                 {"{{name}}"} = primeiro nome, {"{{codigo}}"} = código do vale (obrigatório), {"{{desconto}}"} = desconto,
-                {"{{validade}}"} = data final. O link para deixar de receber mensagens é adicionado no fim.
+                {"{{validade}}"} = data final.
               </span>
             </label>
             <p className="meta">

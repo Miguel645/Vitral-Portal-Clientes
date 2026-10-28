@@ -26,18 +26,22 @@ export default function ClientForm({
       <label>
         Nome
         <input type="text" name="name" defaultValue={client?.name ?? ""} autoComplete="off" required />
+        <span className="hint">Nome e apelido.</span>
       </label>
       <label>
         Telemóvel
         <input type="tel" name="phone" defaultValue={client?.phone ?? ""} autoComplete="off" required />
+        <span className="hint">Número de 9 dígitos.</span>
       </label>
       <label>
         Email (opcional)
         <input type="email" name="email" defaultValue={client?.email ?? ""} autoComplete="off" />
+        <span className="hint">Pode ficar em branco.</span>
       </label>
       <label>
         Data de nascimento (opcional)
         <input type="date" name="birth_date" defaultValue={client?.birth_date ?? ""} />
+        <span className="hint">Para o vale de aniversário.</span>
       </label>
       <label className="check">
         <input type="checkbox" name="consent" defaultChecked={client?.consent ?? false} />

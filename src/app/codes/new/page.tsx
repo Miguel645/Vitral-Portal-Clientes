@@ -27,7 +27,6 @@ export default async function NewValesPage({
         preselectedId={client}
         today={today}
         defaultValidTo={addDays(today, 30)}
-        appUrl={process.env.APP_URL ?? ""}
       />
     </main>
   );

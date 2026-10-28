@@ -16,6 +16,7 @@ export default async function LoginPage({
         <label>
           Utilizador
           <input type="text" name="username" autoComplete="username" required />
+          <span className="hint">O seu nome de utilizador.</span>
         </label>
         <label>
           Palavra-passe

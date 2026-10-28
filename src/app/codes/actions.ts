@@ -6,7 +6,7 @@ import { generateUniqueCodes } from "@/lib/codes";
 import { formatDiscount } from "@/lib/discount";
 import { formatDate } from "@/lib/date";
 import { sendSms } from "@/lib/sms";
-import { clientFirstName, renderValeTemplate, unsubscribeFooter } from "@/lib/smsText";
+import { clientFirstName, renderValeTemplate } from "@/lib/smsText";
 
 export type CreateValesState = { error?: string };
 
@@ -55,7 +55,7 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
   const supabase = await createClient();
   const { data: allClients } = await supabase
     .from("clients")
-    .select("id, name, phone, consent, unsubscribe_token");
+    .select("id, name, phone, consent");
   const clients = (allClients ?? []).filter((c) => target === "all" || pickedIds.has(c.id));
 
   if (clients.length === 0) {
@@ -97,20 +97,18 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
   let failed = 0;
   let noConsent = 0;
   if (withSms) {
-    const appUrl = process.env.APP_URL ?? "";
     const discountText = formatDiscount(discount);
     for (const c of clients) {
       if (!c.consent) {
         noConsent++;
         continue;
       }
-      const text =
-        renderValeTemplate(smsText, {
-          firstName: clientFirstName(c.name),
-          codes: codesByClient.get(c.id) ?? [],
-          discount: discountText,
-          validTo: formatDate(validTo),
-        }) + unsubscribeFooter(appUrl, c.unsubscribe_token);
+      const text = renderValeTemplate(smsText, {
+        firstName: clientFirstName(c.name),
+        codes: codesByClient.get(c.id) ?? [],
+        discount: discountText,
+        validTo: formatDate(validTo),
+      });
       const result = await sendSms(c.phone, text, c.id);
       if (result.ok) sent++;
       else failed++;

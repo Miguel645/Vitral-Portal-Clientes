@@ -53,6 +53,7 @@ export default async function VerificarValePage({
             autoFocus
             required
           />
+          <span className="hint">As 8 letras e números do vale.</span>
         </label>
         <div className="actions">
           <button type="submit" className="btn primary">Verificar</button>

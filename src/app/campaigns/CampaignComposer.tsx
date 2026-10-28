@@ -67,6 +67,7 @@ export default function CampaignComposer({
       <label>
         Número de telefone para teste
         <input type="tel" name="phone" autoComplete="off" required />
+        <span className="hint">Número de 9 dígitos.</span>
       </label>
 
       {testError ? <p className="err" role="alert">{testError}</p> : null}
