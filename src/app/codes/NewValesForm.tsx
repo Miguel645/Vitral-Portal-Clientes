@@ -9,11 +9,12 @@ import { clientFirstName, countSmsParts, renderValeTemplate } from "@/lib/smsTex
 type Client = { id: string; name: string; phone: string; consent: boolean };
 
 // The default message follows "Quantos vales para cada cliente?" (singular/plural),
-// as long as the owner hasn't edited it by hand.
+// as long as the owner hasn't edited it by hand. No accents like á/ó on purpose:
+// they force the 70-character SMS encoding and double the cost.
 function defaultSms(count: number): string {
   return count > 1
-    ? `Olá {{name}}! Tem ${count} vales de {{desconto}} de desconto na Vitral. Códigos dos vales: {{codigo}}. Válidos até {{validade}}.`
-    : "Olá {{name}}! Tem um vale de {{desconto}} de desconto na Vitral. Código do vale: {{codigo}}. Válido até {{validade}}.";
+    ? `Ola {{name}}! Tem ${count} vales de {{desconto}} de desconto na Vitral. Codigos dos vales: {{codigo}}. Validos até {{validade}}.`
+    : "Ola {{name}}! Tem um vale de {{desconto}} de desconto na Vitral. Codigo do vale: {{codigo}}. Valido até {{validade}}.";
 }
 const PREVIEW_CODES = ["ABCD2345", "EFGH6789", "JKLM2345", "NPQR6789", "STUV2345", "WXYZ6789", "ABCD6789", "EFGH2345", "JKLM6789", "NPQR2345"];
 const MAX_RESULTS = 20;
@@ -289,13 +290,9 @@ export default function NewValesForm({
             <label>
               Mensagem
               <textarea name="sms_text" value={smsText} onChange={(e) => setSmsText(e.target.value)} rows={4} required />
-              <span className="hint">
-                {"{{name}}"} = primeiro nome, {"{{codigo}}"} = código do vale (obrigatório), {"{{desconto}}"} = desconto,
-                {"{{validade}}"} = data final.
-              </span>
             </label>
             <p className="meta">
-              {counter.length} carateres · {counter.parts} SMS {counter.parts === 1 ? "parte" : "partes"} por cliente
+              {counter.length} carateres · {counter.parts} SMS por cliente
             </p>
             <div className="card">
               <h2>Pré-visualização</h2>
