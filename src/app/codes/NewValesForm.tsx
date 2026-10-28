@@ -5,18 +5,19 @@ import { createVales, type CreateValesState } from "./actions";
 import { formatDiscount } from "@/lib/discount";
 import { formatDate, parseDisplayDate } from "@/lib/date";
 import DateInput from "@/app/_components/DateInput";
+import SmsCostWarning from "@/app/_components/SmsCostWarning";
 import { formatPhone } from "@/lib/phone";
 import { clientFirstName, composeValeMessage, countSmsParts, PREVIEW_TOKEN } from "@/lib/smsText";
 
 type Client = { id: string; name: string; phone: string; consent: boolean };
 
 // The default message follows "Quantos vales para cada cliente?" (singular/plural),
-// as long as the owner hasn't edited it by hand. No accents like á/ó on purpose:
-// they force the 70-character SMS encoding and double the cost.
+// as long as the owner hasn't edited it by hand. Its only accent is é, which is in
+// the cheap GSM-7 set; accents like á/ó would force the 70-character SMS encoding.
 function defaultSms(count: number): string {
   return count > 1
-    ? `Ola {{name}}! Tem ${count} vales de {{desconto}} de desconto na Vitral. Codigos dos vales: {{codigo}}. Validos até {{validade}}.`
-    : "Ola {{name}}! Tem um vale de {{desconto}} de desconto na Vitral. Codigo do vale: {{codigo}}. Valido até {{validade}}.";
+    ? `Bom dia {{name}}! Tem ${count} vales de {{desconto}} de desconto na Vitral: {{codigo}}. Use-os até {{validade}}.`
+    : "Bom dia {{name}}! Tem um vale de {{desconto}} de desconto na Vitral: {{codigo}}. Use-o até {{validade}}.";
 }
 const PREVIEW_CODES = ["ABCD2345", "EFGH6789", "JKLM2345", "NPQR6789", "STUV2345", "WXYZ6789", "ABCD6789", "EFGH2345", "JKLM6789", "NPQR2345"];
 const MAX_RESULTS = 20;
@@ -355,6 +356,7 @@ export default function NewValesForm({
             <p className="meta">
               {counter.length} carateres · {counter.parts} SMS por cliente
             </p>
+            <SmsCostWarning text={preview} />
             <div className="preview">
               <p className="preview-title">Pré-visualização</p>
               <p className="meta" style={{ whiteSpace: "pre-wrap" }}>{preview}</p>

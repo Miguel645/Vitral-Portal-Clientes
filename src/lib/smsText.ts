@@ -1,22 +1,34 @@
 // GSM 03.38 7-bit alphabet (basic + extension table). Any character outside
 // this set forces the whole SMS into UCS-2 encoding, which cuts the
-// per-segment limit from 160 to 70 characters. Portuguese accents like
-// ã, õ, á, â, ê, ô, ç are NOT in this set, so they trigger that switch.
+// per-segment limit from 160 to 70 characters. In Portuguese, é, è, à, ù, ì, ò
+// and Ç ARE in this set (no extra cost); á, ã, õ, ó, í, ú, â, ê, ô and ç are
+// NOT, so they trigger that switch.
 const GSM7_BASIC =
   "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
 const GSM7_EXTENDED = "^{}\\[~]|€";
+const GSM7_EXTENDED_SET = new Set([...GSM7_EXTENDED]);
 const GSM7_SET = new Set([...GSM7_BASIC, ...GSM7_EXTENDED]);
 
 export function isGsm7(text: string): boolean {
   return [...text].every((ch) => GSM7_SET.has(ch));
 }
 
+// The characters that force the expensive encoding, each listed once (e.g. ["ã", "ç"]).
+export function nonGsm7Chars(text: string): string[] {
+  return [...new Set([...text].filter((ch) => !GSM7_SET.has(ch)))];
+}
+
+// `length` is what the operator counts: in GSM-7, extension characters like € take
+// two places; in UCS-2, emoji take two. One SMS holds 160 (GSM-7) or 70 (UCS-2);
+// longer messages are split into parts of 153 or 67, because each part carries
+// a small header to join them back together.
 export function countSmsParts(text: string): { length: number; gsm7: boolean; segmentSize: number; parts: number } {
-  const length = [...text].length;
   const gsm7 = isGsm7(text);
-  const segmentSize = gsm7 ? 160 : 70;
-  const parts = length === 0 ? 0 : Math.ceil(length / segmentSize);
-  return { length, gsm7, segmentSize, parts };
+  const length = gsm7 ? [...text].reduce((n, ch) => n + (GSM7_EXTENDED_SET.has(ch) ? 2 : 1), 0) : text.length;
+  const single = gsm7 ? 160 : 70;
+  const multi = gsm7 ? 153 : 67;
+  const parts = length === 0 ? 0 : length <= single ? 1 : Math.ceil(length / multi);
+  return { length, gsm7, segmentSize: parts > 1 ? multi : single, parts };
 }
 
 export function clientFirstName(fullName: string): string {

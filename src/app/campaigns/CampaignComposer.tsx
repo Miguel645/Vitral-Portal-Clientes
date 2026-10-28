@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { sendCampaign, sendTestSms, type SendAllState, type TestSmsState } from "./actions";
 import { countSmsParts, composeMessage, PREVIEW_TOKEN } from "@/lib/smsText";
+import SmsCostWarning from "@/app/_components/SmsCostWarning";
 
 const EXAMPLE_TEMPLATE = "Olá {{name}}, tem 10% de desconto em todos os artigos até domingo! Vitral";
 const PREVIEW_NAME = "Maria";
@@ -67,13 +68,9 @@ export default function CampaignComposer({
 
         <p className="meta">
           {counter.length} carateres · {counter.parts} SMS {counter.parts === 1 ? "parte" : "partes"} (
-          {counter.gsm7 ? "160" : "70"} por parte)
+          {counter.segmentSize} por parte)
         </p>
-        {!counter.gsm7 ? (
-          <p className="err">
-            Atenção: carateres como ã, õ ou á fazem o SMS custar mais (70 em vez de 160 carateres por parte).
-          </p>
-        ) : null}
+        <SmsCostWarning text={fullPreview} />
 
         <p className="meta">
           {recipientCount} {recipientCount === 1 ? "cliente vai receber" : "clientes vão receber"} esta mensagem.
