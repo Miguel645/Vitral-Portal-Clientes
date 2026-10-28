@@ -8,6 +8,11 @@ type SupabaseCookie = {
 };
 
 export async function middleware(request: NextRequest) {
+  // Vercel Cron calls this without a session; the route checks CRON_SECRET itself.
+  if (request.nextUrl.pathname.startsWith("/api/cron/")) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

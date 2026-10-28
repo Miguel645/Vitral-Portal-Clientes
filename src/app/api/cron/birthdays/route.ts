@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runBirthdayCheck } from "@/lib/birthdayCodes";
 
+export const maxDuration = 60;
+
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
