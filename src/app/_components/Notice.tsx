@@ -1,12 +1,25 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { JUST_SAVED_MS } from "./JustSaved";
 
 // Shows a "saved/deleted" message that arrived via the URL, then removes it from the
 // address bar so it doesn't come back when the page is refreshed. `clear` lists other
 // params that came with it (e.g. "saved", which highlights what was just created).
-export default function Notice({ message, param = "message", clear = [] }: { message?: string; param?: string; clear?: string[] }) {
+// `autoHide` removes the message after 5 seconds (only for success messages: errors stay).
+export default function Notice({
+  message,
+  param = "message",
+  clear = [],
+  autoHide = false,
+}: {
+  message?: string;
+  param?: string;
+  clear?: string[];
+  autoHide?: boolean;
+}) {
   const clearKey = clear.join(",");
+  const [hidden, setHidden] = useState(false);
   useEffect(() => {
     if (!message) return;
     const url = new URL(window.location.href);
@@ -17,7 +30,14 @@ export default function Notice({ message, param = "message", clear = [] }: { mes
     }
   }, [message, param, clearKey]);
 
-  if (!message) return null;
+  useEffect(() => {
+    setHidden(false);
+    if (!message || !autoHide) return;
+    const timer = setTimeout(() => setHidden(true), JUST_SAVED_MS);
+    return () => clearTimeout(timer);
+  }, [message, autoHide]);
+
+  if (!message || hidden) return null;
   return (
     <p className="notice" role="status">
       {message}
