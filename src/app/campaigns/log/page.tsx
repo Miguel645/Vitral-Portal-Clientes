@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/date";
 import { formatPhone } from "@/lib/phone";
 import { sourceLabel, STATUS_LABEL, statusTagClass } from "./labels";
+import { SMS_LOG_KEEP_MONTHS } from "@/lib/messaging/retention";
 
 type LogRow = {
   id: string;
@@ -131,6 +132,11 @@ export default async function SendHistoryPage({
           {rows.length === LIMIT ? <p className="meta">Só aparecem os {LIMIT} envios mais recentes.</p> : null}
         </>
       )}
+
+      <p className="meta">
+        As mensagens ficam aqui {SMS_LOG_KEEP_MONTHS} meses e depois são apagadas automaticamente. Cada campanha
+        guarda os totais (enviados, falharam, ignorados).
+      </p>
     </main>
   );
 }

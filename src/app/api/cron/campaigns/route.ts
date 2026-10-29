@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runLiveCampaigns } from "@/app/campaigns/live";
 import { lisbonHour } from "@/lib/date";
+import { archiveOldSmsLog } from "@/lib/messaging/retention";
 
 export const maxDuration = 60;
 
@@ -22,6 +23,9 @@ export async function GET(request: NextRequest) {
   if (lisbonHour() !== SEND_HOUR) return NextResponse.json({ skipped: `Só envia às ${SEND_HOUR}h de Lisboa.` });
 
   const result = await runLiveCampaigns();
+  // Also once a day: messages older than 12 months leave the send history.
+  const history = await archiveOldSmsLog();
   // An error shows as a failed run in Vercel > Cron Jobs.
-  return NextResponse.json(result, { status: result.error ? 500 : 200 });
+  const failed = !!result.error || "error" in history;
+  return NextResponse.json({ ...result, history }, { status: failed ? 500 : 200 });
 }
