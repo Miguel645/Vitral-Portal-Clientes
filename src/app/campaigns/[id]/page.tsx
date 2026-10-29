@@ -33,7 +33,7 @@ export default async function CampaignPage({
   const supabase = await createClient();
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, name, sms_text, status, vale_percent, vale_amount_eur, vale_valid_from, vale_valid_to, sent_at, starts_on, live_until, stopped_at, sending_until, send_error")
+    .select("id, name, sms_text, status, vale_percent, vale_amount_eur, vale_valid_from, vale_valid_to, sent_at, first_sent_at, starts_on, live_until, stopped_at, sending_until, send_error, archived_sent, archived_simulated, archived_failed, archived_skipped, archived_interrupted, log_archived_at")
     .eq("id", id)
     .maybeSingle();
   if (!campaign) notFound();
@@ -104,16 +104,24 @@ export default async function CampaignPage({
     // Clients who still have to get it (sent in the background, see src/lib/jobs).
     pendingRecipients(supabase, id).then((r) => r.length),
   ]);
-  const counts = { ok: sent + simulated, failed, skipped };
-  const startedAt = firstLog?.[0]?.created_at ?? campaign.sent_at;
-  const simulatedOnly = simulated > 0 && sent === 0;
+  // Messages older than 12 months leave the history, but their totals stay on the campaign.
+  const allSent = sent + campaign.archived_sent;
+  const allSimulated = simulated + campaign.archived_simulated;
+  const counts = {
+    ok: allSent + allSimulated,
+    failed: failed + campaign.archived_failed,
+    skipped: skipped + campaign.archived_skipped,
+  };
+  const allInterrupted = interrupted + campaign.archived_interrupted;
+  const startedAt = firstLog?.[0]?.created_at ?? campaign.first_sent_at ?? campaign.sent_at;
+  const simulatedOnly = allSimulated > 0 && allSent === 0;
   const hasVale = campaign.vale_valid_from && campaign.vale_valid_to;
   const isLive = !campaign.stopped_at && !!campaign.live_until && campaign.live_until >= lisbonToday();
   // Still going out in the background. If no step is sending right now (a hand-off was
   // lost), opening this page starts one again; nobody has to press anything.
   const sending = isLive && pending > 0;
   if (sending && !isSending(campaign.sending_until)) after(() => startJob({ kind: "campaign", id }));
-  const attempted = counts.ok + counts.failed + counts.skipped + interrupted;
+  const attempted = counts.ok + counts.failed + counts.skipped + allInterrupted;
 
   return (
     <main className="page-medium">
@@ -131,12 +139,13 @@ export default async function CampaignPage({
           <li>{counts.ok} {simulatedOnly ? (counts.ok === 1 ? "simulado" : "simulados") : counts.ok === 1 ? "enviado" : "enviados"}</li>
           <li>{counts.failed} {counts.failed === 1 ? "falhou" : "falharam"}</li>
           <li>{counts.skipped} {counts.skipped === 1 ? "ignorado" : "ignorados"} (número inválido)</li>
-          {interrupted > 0 ? (
+          {allInterrupted > 0 ? (
             <li>
-              {interrupted} {interrupted === 1 ? "interrompido" : "interrompidos"} (o envio parou a meio; veja no histórico)
+              {allInterrupted} {allInterrupted === 1 ? "interrompido" : "interrompidos"} (o envio parou a meio; veja no histórico)
             </li>
           ) : null}
-          {pending > 0 && !sending ? (
+          {/* Once old messages have left the history, who was missed can't be told any more. */}
+          {pending > 0 && !sending && !campaign.log_archived_at ? (
             <li>
               {pending} {pending === 1 ? "cliente não a recebeu" : "clientes não a receberam"}
               {campaign.stopped_at ? " (a campanha foi parada)" : " (a campanha terminou)"}
