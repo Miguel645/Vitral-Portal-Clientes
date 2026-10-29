@@ -442,3 +442,36 @@ alter table public.campaigns add column if not exists starts_on date;
 alter table public.campaigns drop constraint if exists campaigns_status_check;
 alter table public.campaigns
   add constraint campaigns_status_check check (status in ('draft', 'scheduled', 'sent'));
+
+-- Background sending. Same SQL as supabase/migrations/20261029_background_sending.sql.
+create table if not exists public.vale_batches (
+  id uuid primary key default gen_random_uuid(),
+  sms_text text not null,
+  recipients integer not null default 0,
+  valid_to date not null,
+  sending_until timestamptz,
+  finished_at timestamptz,
+  send_error text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.vale_batches enable row level security;
+
+drop policy if exists "Signed-in users manage vale batches" on public.vale_batches;
+create policy "Signed-in users manage vale batches"
+  on public.vale_batches
+  for all
+  to authenticated
+  using (true)
+  with check (true);
+
+-- 2. Which run each vale and each SMS belongs to, so a client is never texted twice.
+alter table public.discount_codes add column if not exists batch_id uuid references public.vale_batches(id) on delete set null;
+alter table public.sms_log add column if not exists batch_id uuid references public.vale_batches(id) on delete set null;
+create index if not exists discount_codes_batch_id_idx on public.discount_codes (batch_id);
+create index if not exists sms_log_batch_id_idx on public.sms_log (batch_id);
+
+-- 3. Campaigns: the same "one run at a time" marker, and the last sending problem
+--    (shown on the campaign's summary).
+alter table public.campaigns add column if not exists sending_until timestamptz;
+alter table public.campaigns add column if not exists send_error text;

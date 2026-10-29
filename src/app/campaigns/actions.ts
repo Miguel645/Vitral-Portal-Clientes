@@ -7,8 +7,8 @@ import { isSimulation, sendSms } from "@/lib/messaging";
 import { normalizePhone } from "@/lib/phone";
 import { appUrlError, unsubscribeBaseUrl } from "@/lib/optOut";
 import { randomString } from "@/lib/codes";
-import { pendingRecipients, RESUME_AFTER_MS, type Recipient } from "./recipients";
-import { deliver, type CampaignRow } from "./deliver";
+import { pendingRecipients } from "./recipients";
+import { runCampaignStep, type CampaignRow } from "./deliver";
 import { formatDate, INVALID_DATE, lisbonToday, parseDisplayDate } from "@/lib/date";
 import { composeCampaignMessage } from "@/lib/smsText";
 
@@ -153,7 +153,7 @@ export async function campaignAction(_prev: CampaignState, formData: FormData): 
     redirect(`/campaigns?saved=${id}&message=${encodeURIComponent(message)}`);
   }
 
-  const result = await sendToAll(supabase, id, parsed.row);
+  const result = await sendToAll(supabase, id);
   if ("error" in result) return { error: result.error, intent, savedId: id };
   redirect(`/campaigns/${id}?message=${encodeURIComponent(result.message)}`);
 }
@@ -191,87 +191,63 @@ async function sendTest(formData: FormData): Promise<CampaignState> {
   };
 }
 
+// How long "Enviar campanha" sends while the page waits; whoever is left gets it from
+// background steps, by themselves (src/lib/jobs).
+const FIRST_STEP_MS = 10_000;
+
 async function sendToAll(
   supabase: SupabaseClient,
-  id: string,
-  row: CampaignRow
+  id: string
 ): Promise<{ message: string } | { error: string }> {
-  const startedAt = Date.now();
-  // Taken before the client list is read: when the daily job finishes this send, clients
-  // who switched messages on after this are left out.
-  const firstSentAt = new Date(startedAt).toISOString();
+  // Taken before the client list is read: clients added, or who switch messages on,
+  // after this never get it.
+  const firstSentAt = new Date().toISOString();
   const urlError = appUrlError();
   if (urlError) return { error: urlError };
-  // Only clients who want to receive messages, never anyone else (1,000 at a time).
-  let recipients: Recipient[];
+  let count: number;
   try {
-    recipients = await pendingRecipients(supabase, id, { cutoff: firstSentAt });
+    count = (await pendingRecipients(supabase, id, { cutoff: firstSentAt })).length;
   } catch {
     return { error: "Não foi possível ler a lista de clientes. Tente novamente." };
   }
-  if (recipients.length === 0) return { error: "Nenhum cliente quer receber mensagens. Nada foi enviado." };
+  if (count === 0) return { error: "Nenhum cliente quer receber mensagens. Nada foi enviado." };
 
   // Mark it as sent first, so a double tap (or a second tab) can never send it twice.
   const { data: claimed } = await supabase
     .from("campaigns")
-    .update({ status: "sent", sent_at: new Date().toISOString(), first_sent_at: firstSentAt })
+    .update({ status: "sent", sent_at: firstSentAt, first_sent_at: firstSentAt })
     .eq("id", id)
     .eq("status", "draft")
     .select("id");
   if (!claimed?.length) return { error: "Esta campanha já foi enviada. Veja o resumo na lista de campanhas." };
 
-  const result = await deliver(supabase, id, row, recipients, startedAt);
-  if ("error" in result && result.nothingSent) {
+  const result = await runCampaignStep(supabase, id, Date.now() + FIRST_STEP_MS);
+  if (result.status === "error" && result.nothingSent) {
     // Nothing was created or sent: put the campaign back to draft so it can be tried again.
-    await supabase.from("campaigns").update({ status: "draft", sent_at: null, first_sent_at: null }).eq("id", id);
+    await supabase.from("campaigns").update({ status: "draft", sent_at: null, first_sent_at: null, send_error: null }).eq("id", id);
+    return { error: `${result.error} Tente novamente.` };
   }
-  return result;
+  return { message: stepMessage(result) };
 }
 
-// "Continuar envio" on a sent campaign's summary: sends only to the clients who
-// receive messages and have nothing in the log for it yet.
-export async function resumeCampaign(formData: FormData) {
-  const id = String(formData.get("id") ?? "");
-  const seenSentAt = String(formData.get("sent_at") ?? "");
-  const back = (message: string) => redirect(`/campaigns/${id}?message=${encodeURIComponent(message)}`);
-  if (!/^[0-9a-f-]{36}$/i.test(id)) redirect("/campaigns");
-  const startedAt = Date.now();
-  const urlError = appUrlError();
-  if (urlError) back(urlError);
-
-  const supabase = await createClient();
-  const { data: campaign } = await supabase
-    .from("campaigns")
-    .select("name, sms_text, status, sent_at, vale_percent, vale_amount_eur, vale_valid_from, vale_valid_to")
-    .eq("id", id)
-    .maybeSingle();
-  if (!campaign || campaign.status !== "sent" || !campaign.sent_at) back("Esta campanha ainda não foi enviada.");
-  if (Date.now() - new Date(campaign!.sent_at).getTime() < RESUME_AFTER_MS) {
-    back("O envio ainda pode estar a decorrer. Espere um minuto, atualize a página e veja se ainda falta alguém.");
+// What "Enviar campanha" says once its first step is done.
+function stepMessage(result: Awaited<ReturnType<typeof runCampaignStep>>): string {
+  if (result.status === "error") {
+    return `${result.error} A campanha volta a tentar sozinha; o resumo mostra o que foi enviado.`;
   }
-
-  // Only one run at a time: this moves sent_at forward only if nobody else did since
-  // the page was opened, so a double tap or a second tab gets nothing.
-  const { data: claimed } = await supabase
-    .from("campaigns")
-    .update({ sent_at: new Date().toISOString() })
-    .eq("id", id)
-    .eq("status", "sent")
-    .eq("sent_at", seenSentAt)
-    .select("id");
-  if (!claimed?.length) back("O envio já foi continuado noutra janela. Atualize a página para ver o resumo.");
-
-  let recipients: Recipient[];
-  try {
-    recipients = await pendingRecipients(supabase, id);
-  } catch {
-    back("Não foi possível ler a lista de clientes. Tente novamente.");
-    return;
+  if (result.status !== "done") return "Campanha enviada.";
+  const simulated = isSimulation();
+  const parts = [
+    simulated
+      ? `Campanha enviada em modo simulação: ${result.ok} SMS simulados, nada foi enviado de verdade.`
+      : `Campanha enviada: ${result.ok} SMS enviados.`,
+  ];
+  if (result.failed > 0) parts.push(`${result.failed} falharam.`);
+  if (result.skipped > 0) parts.push(`${result.skipped} ignorados (número inválido).`);
+  if (result.left > 0) {
+    parts.push(`Os outros ${result.left} estão a ser enviados automaticamente — pode fechar esta página.`);
   }
-  if (recipients.length === 0) back("Já não falta ninguém: todos os clientes que recebem mensagens estão no histórico.");
-
-  const result = await deliver(supabase, id, campaign as CampaignRow, recipients, startedAt);
-  back("error" in result ? result.error : result.message);
+  return parts.join(" ");
 }
 
 // "Parar campanha" on a live campaign's summary: the daily job no longer finishes its send.

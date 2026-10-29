@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { codeStatus, tagClass } from "./status";
 import Notice from "@/app/_components/Notice";
@@ -9,6 +10,8 @@ import DeleteMenu from "@/app/_components/DeleteMenu";
 import { deleteCode } from "./actions";
 import { formatDate, lisbonToday } from "@/lib/date";
 import { formatDiscount, KIND_LABEL } from "@/lib/discount";
+import { isSending, startJob } from "@/lib/jobs";
+import AutoRefresh from "@/app/_components/AutoRefresh";
 
 type Row = {
   id: string;
@@ -61,6 +64,22 @@ export default async function CodesPage({
 
   const filtered = ((data ?? []) as unknown as Row[]).map((r) => ({ ...r, status: codeStatus(r, today) }));
 
+  // "Criar vales" runs whose SMS are still going out in the background (src/lib/jobs).
+  type Batch = { id: string; recipients: number; sending_until: string | null; send_error: string | null };
+  const { data: batchRows } = await supabase
+    .from("vale_batches")
+    .select("id, recipients, sending_until, send_error")
+    .is("finished_at", null)
+    .order("created_at");
+  const batches = await Promise.all(
+    ((batchRows ?? []) as Batch[]).map(async (b) => {
+      const { count } = await supabase.from("sms_log").select("id", { count: "exact", head: true }).eq("batch_id", b.id);
+      return { ...b, sent: count ?? 0 };
+    })
+  );
+  // No step sending right now (a hand-off was lost): opening this page starts one again.
+  for (const b of batches) if (!isSending(b.sending_until)) after(() => startJob({ kind: "vales", id: b.id }));
+
   return (
     <main className="page-wide">
       <header className="top">
@@ -69,6 +88,19 @@ export default async function CodesPage({
       </header>
 
       <Notice message={message} clear={["saved"]} autoHide />
+
+      {batches.length > 0 ? (
+        <div className="notice" role="status">
+          {batches.map((b) => (
+            <p key={b.id}>
+              A enviar automaticamente os SMS dos vales: {Math.min(b.sent, b.recipients)} de {b.recipients}. Pode fechar
+              esta página.
+              {b.send_error ? <span className="err-text"> Último problema: {b.send_error} Volta a tentar sozinho.</span> : null}
+            </p>
+          ))}
+          <AutoRefresh />
+        </div>
+      ) : null}
 
       <div className="bar filters">
         {FILTERS.map((f) => (

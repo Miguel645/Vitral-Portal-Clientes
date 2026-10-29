@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import Notice from "@/app/_components/Notice";
 import { formatDate, formatDateTime, lisbonToday } from "@/lib/date";
@@ -8,8 +9,10 @@ import { isSimulation } from "@/lib/messaging/mode";
 import CampaignEditor from "../CampaignEditor";
 import { loadEditorData } from "../editorData";
 import { appUrlError } from "@/lib/optOut";
-import { pendingRecipients, RESUME_AFTER_MS } from "../recipients";
-import { deleteCampaign, resumeCampaign, stopCampaign } from "../actions";
+import { pendingRecipients } from "../recipients";
+import { deleteCampaign, stopCampaign } from "../actions";
+import { isSending, startJob } from "@/lib/jobs";
+import AutoRefresh from "@/app/_components/AutoRefresh";
 import DeleteMenu from "@/app/_components/DeleteMenu";
 import SubmitButton from "@/app/_components/SubmitButton";
 
@@ -30,7 +33,7 @@ export default async function CampaignPage({
   const supabase = await createClient();
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, name, sms_text, status, vale_percent, vale_amount_eur, vale_valid_from, vale_valid_to, sent_at, starts_on, live_until, stopped_at")
+    .select("id, name, sms_text, status, vale_percent, vale_amount_eur, vale_valid_from, vale_valid_to, sent_at, starts_on, live_until, stopped_at, sending_until, send_error")
     .eq("id", id)
     .maybeSingle();
   if (!campaign) notFound();
@@ -95,18 +98,21 @@ export default async function CampaignPage({
     logCount("skipped"),
     logCount("sending"),
     supabase.from("discount_codes").select("id", { count: "exact", head: true }).eq("campaign_id", id),
-    // sent_at moves forward with each "Continuar envio"; the first SMS says when it really started.
+    // When the first SMS really went out.
     supabase.from("sms_log").select("created_at").eq("campaign_id", id).eq("is_test", false).order("created_at").limit(1),
-    // Clients who receive messages and aren't in the log yet: the send stopped before them.
+    // Clients who still have to get it (sent in the background, see src/lib/jobs).
     pendingRecipients(supabase, id).then((r) => r.length),
   ]);
   const counts = { ok: sent + simulated, failed, skipped };
   const startedAt = firstLog?.[0]?.created_at ?? campaign.sent_at;
-  // An earlier run may still be going for up to a minute; only offer to continue once it surely stopped.
-  const canResume = pending > 0 && !!campaign.sent_at && Date.now() - new Date(campaign.sent_at).getTime() >= RESUME_AFTER_MS;
   const simulatedOnly = simulated > 0 && sent === 0;
   const hasVale = campaign.vale_valid_from && campaign.vale_valid_to;
   const isLive = !campaign.stopped_at && !!campaign.live_until && campaign.live_until >= lisbonToday();
+  // Still going out in the background. If no step is sending right now (a hand-off was
+  // lost), opening this page starts one again; nobody has to press anything.
+  const sending = isLive && pending > 0;
+  if (sending && !isSending(campaign.sending_until)) after(() => startJob({ kind: "campaign", id }));
+  const attempted = counts.ok + counts.failed + counts.skipped + interrupted;
 
   return (
     <main className="page-medium">
@@ -128,9 +134,10 @@ export default async function CampaignPage({
               {interrupted} {interrupted === 1 ? "interrompido" : "interrompidos"} (o envio parou a meio; veja no histórico)
             </li>
           ) : null}
-          {pending > 0 ? (
+          {pending > 0 && !sending ? (
             <li>
-              {pending} {pending === 1 ? "cliente ainda não recebeu" : "clientes ainda não receberam"}
+              {pending} {pending === 1 ? "cliente não a recebeu" : "clientes não a receberam"}
+              {campaign.stopped_at ? " (a campanha foi parada)" : " (a campanha terminou)"}
             </li>
           ) : null}
           {hasVale ? (
@@ -141,31 +148,31 @@ export default async function CampaignPage({
             </li>
           ) : null}
         </ul>
+        {sending ? (
+          <p className="notice" role="status">
+            A enviar automaticamente: {attempted} de {attempted + pending} SMS. Pode fechar esta página.
+            <AutoRefresh />
+          </p>
+        ) : null}
+        {sending && campaign.send_error ? (
+          <p className="err" role="alert">
+            Último problema no envio: {campaign.send_error} Volta a tentar sozinha.
+          </p>
+        ) : null}
         <div className="preview">
           <p className="preview-title">Texto do SMS</p>
           <p className="meta" style={{ whiteSpace: "pre-wrap" }}>{campaign.sms_text}</p>
         </div>
         {isLive ? (
           <p className="meta">
-            Ativa até {formatDate(campaign.live_until!)}: se o envio parou a meio, os clientes que faltam recebem-na às
-            10h. Clientes adicionados depois do envio não a recebem.
+            Ativa até {formatDate(campaign.live_until!)}. Clientes adicionados depois do envio não a recebem.
           </p>
         ) : campaign.stopped_at ? (
           <p className="meta">Parada em {formatDateTime(campaign.stopped_at)}: já não é enviada a mais ninguém.</p>
         ) : campaign.live_until ? (
           <p className="meta">Terminou a {formatDate(campaign.live_until)}.</p>
         ) : null}
-        {pending > 0 && !canResume ? (
-          <p className="meta">O envio pode ainda estar a decorrer. Atualize a página daqui a um minuto.</p>
-        ) : null}
         <div className="actions">
-          {canResume ? (
-            <form action={resumeCampaign}>
-              <input type="hidden" name="id" value={campaign.id} />
-              <input type="hidden" name="sent_at" value={campaign.sent_at!} />
-              <SubmitButton pendingText="A enviar…">Continuar envio</SubmitButton>
-            </form>
-          ) : null}
           <Link href={`/campaigns/log?campaign=${campaign.id}`} className="btn">Ver histórico de envios</Link>
           {isLive ? (
             <form action={stopCampaign}>

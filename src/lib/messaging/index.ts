@@ -14,6 +14,8 @@ export { isSimulation, messagingMode } from "./mode";
 export type SendOptions = {
   clientId?: string;
   campaignId?: string;
+  // The "Criar vales" run (vale_batches) this SMS belongs to.
+  batchId?: string;
   // A test SMS from the campaign page (shown as "Teste" in the history).
   isTest?: boolean;
   // "welcome" for the welcome SMS (the "Boas-vindas" filter in the send history).
@@ -49,6 +51,7 @@ export async function sendSms(to: string, text: string, opts: SendOptions = {}):
         body: text,
         client_id: opts.clientId ?? null,
         campaign_id: opts.campaignId ?? null,
+        ...(opts.batchId ? { batch_id: opts.batchId } : {}),
         is_test: opts.isTest ?? false,
         ...(opts.kind ? { kind: opts.kind } : {}),
       })
