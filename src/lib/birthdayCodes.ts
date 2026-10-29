@@ -2,7 +2,8 @@ import "server-only";
 import { createAdminClient } from "./supabase/admin";
 import { generateUniqueCode } from "./codes";
 import { fetchAll } from "./fetchAll";
-import { lisbonToday, addDays, formatDate, isBirthdayOn } from "./date";
+import { lisbonToday, addDays, formatDate } from "./date";
+import { birthdayToGive } from "./birthday";
 import { formatDiscount } from "./discount";
 import { sendSms } from "./messaging";
 import { clientFirstName, composeValeMessage } from "./smsText";
@@ -20,7 +21,6 @@ export async function runBirthdayCheck(): Promise<{ created: number; smsSent: nu
 
   const supabase = createAdminClient();
   const today = lisbonToday();
-  const todayY = Number(today.slice(0, 4));
   const appUrl = unsubscribeBaseUrl();
 
   const { data: settings } = await supabase
@@ -31,11 +31,20 @@ export async function runBirthdayCheck(): Promise<{ created: number; smsSent: nu
 
   if (!settings || !settings.active) return { created: 0, smsSent: 0, smsFailed: 0 };
 
-  type Client = { id: string; name: string; phone: string; consent: boolean; birth_date: string | null; short_token: string };
+  type Client = {
+    id: string;
+    name: string;
+    phone: string;
+    consent: boolean;
+    birth_date: string | null;
+    short_token: string;
+    created_at: string;
+    consent_at: string | null;
+  };
   const clients = await fetchAll<Client>((from, to) =>
     supabase
       .from("clients")
-      .select("id, name, phone, consent, birth_date, short_token")
+      .select("id, name, phone, consent, birth_date, short_token, created_at, consent_at")
       .eq("consent", true)
       .not("birth_date", "is", null)
       .order("id")
@@ -47,7 +56,9 @@ export async function runBirthdayCheck(): Promise<{ created: number; smsSent: nu
   let smsFailed = 0;
 
   for (const client of clients) {
-    if (!client.birth_date || !isBirthdayOn(client.birth_date, today)) continue;
+    // Today's birthday, or one from the last 7 days if a run was missed.
+    const birthday = birthdayToGive(client, today);
+    if (!birthday) continue;
 
     // Used vales are deleted, so this table (filled by a database trigger) remembers
     // which clients already got their birthday vale each year.
@@ -55,19 +66,22 @@ export async function runBirthdayCheck(): Promise<{ created: number; smsSent: nu
       .from("birthday_vales_given")
       .select("client_id")
       .eq("client_id", client.id)
-      .eq("year", todayY)
+      .eq("year", Number(birthday.slice(0, 4)))
       .limit(1);
 
     if (existing && existing.length > 0) continue;
 
     const code = await generateUniqueCode(supabase);
+    // Valid from the birthday itself: the database counts one birthday vale per year by
+    // this date, so a 31 December birthday caught up on 2 January still counts for its
+    // own year. It lasts the full number of days from today.
     const validTo = addDays(today, settings.valid_days);
     const { error } = await supabase.from("discount_codes").insert({
       code,
       kind: "birthday",
       percent: settings.percent,
       client_id: client.id,
-      valid_from: today,
+      valid_from: birthday,
       valid_to: validTo,
     });
 
