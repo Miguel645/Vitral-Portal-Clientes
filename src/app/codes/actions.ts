@@ -5,13 +5,16 @@ import { createClient } from "@/lib/supabase/server";
 import { generateUniqueCodes } from "@/lib/codes";
 import { fetchAll } from "@/lib/fetchAll";
 import { clientSearchFilter } from "@/lib/clientSearch";
-import { formatDiscount } from "@/lib/discount";
-import { formatDate, INVALID_DATE, parseDisplayDate } from "@/lib/date";
-import { isSimulation, sendSms } from "@/lib/messaging";
-import { appUrlError, unsubscribeBaseUrl } from "@/lib/optOut";
+import { INVALID_DATE, parseDisplayDate } from "@/lib/date";
+import { isSimulation } from "@/lib/messaging";
+import { appUrlError } from "@/lib/optOut";
 import { safeBack } from "./status";
 import { markValeUsed } from "./markUsed";
-import { clientFirstName, composeValeMessage } from "@/lib/smsText";
+import { runValeBatchStep } from "./valeBatch";
+
+// How long "Criar vales" sends SMS while the page waits; whoever is left gets theirs from
+// background steps, by themselves (src/lib/jobs).
+const FIRST_STEP_MS = 10_000;
 
 // `field` names the form field the error is about, so it can be marked and read out with it.
 export type CreateValesState = { error?: string; field?: "value" | "valid_from" | "valid_to" | "per_client" | "clients" | "sms_text" };
@@ -107,10 +110,22 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
   } catch {
     return { error: "Não foi possível criar os vales. Tente novamente." };
   }
-  const codesByClient = new Map<string, string[]>();
+  // With SMS, the run is recorded first and every vale points to it: the SMS then go out
+  // in steps (some now, the rest in the background), and nobody gets theirs twice.
+  const smsCount = withSms ? clients.filter((c) => c.consent).length : 0;
+  let batchId: string | null = null;
+  if (smsCount > 0) {
+    const { data: batch } = await supabase
+      .from("vale_batches")
+      .insert({ sms_text: smsText, recipients: smsCount, valid_to: validTo })
+      .select("id")
+      .single();
+    if (!batch) return { error: "Não foi possível criar os vales. Tente novamente." };
+    batchId = batch.id;
+  }
+
   const rows = clients.flatMap((c, i) => {
     const mine = codes.slice(i * perClient, (i + 1) * perClient);
-    codesByClient.set(c.id, mine);
     return mine.map((code) => ({
       code,
       kind: "manual",
@@ -119,49 +134,26 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
       client_id: c.id,
       valid_from: validFrom,
       valid_to: validTo,
+      ...(batchId ? { batch_id: batchId } : {}),
     }));
   });
 
   for (let i = 0; i < rows.length; i += 500) {
     const { error } = await supabase.from("discount_codes").insert(rows.slice(i, i + 500));
     if (error) {
+      // No SMS goes out for a run whose vales weren't all created.
+      if (batchId) await supabase.from("vale_batches").update({ finished_at: new Date().toISOString() }).eq("id", batchId);
       return {
         error:
           i === 0
             ? "Não foi possível criar os vales. Tente novamente."
-            : `Só foram criados ${i} de ${rows.length} vales. Veja a lista de vales antes de tentar novamente.`,
+            : `Só foram criados ${i} de ${rows.length} vales e nenhum SMS foi enviado. Veja a lista de vales antes de tentar novamente.`,
       };
     }
   }
 
-  let sent = 0;
-  let failed = 0;
-  let noConsent = 0;
-  if (withSms) {
-    const discountText = formatDiscount(discount);
-    const appUrl = unsubscribeBaseUrl();
-    for (const c of clients) {
-      if (!c.consent) {
-        noConsent++;
-        continue;
-      }
-      const text = composeValeMessage(
-        smsText,
-        {
-          firstName: clientFirstName(c.name),
-          codes: codesByClient.get(c.id) ?? [],
-          discount: discountText,
-          validTo: formatDate(validTo),
-        },
-        appUrl,
-        c.short_token
-      );
-      const result = await sendSms(c.phone, text, { clientId: c.id });
-      if (result.ok) sent++;
-      else failed++;
-    }
-  }
-
+  const noConsent = withSms ? clients.length - smsCount : 0;
+  const step = batchId ? await runValeBatchStep(supabase, batchId, Date.now() + FIRST_STEP_MS) : null;
   const parts: string[] = [];
   if (rows.length === 1) {
     parts.push(`Vale ${rows[0].code} criado para ${clients[0].name}.`);
@@ -170,12 +162,18 @@ export async function createVales(_prev: CreateValesState, formData: FormData): 
       `${rows.length} vales criados para ${clients.length} ${clients.length === 1 ? "cliente" : "clientes"}.`
     );
   }
-  if (withSms) {
+  if (step?.status === "done") {
     const simulated = isSimulation();
     parts.push(
-      `${sent} SMS ${simulated ? "simulados (modo de teste, nada foi enviado de verdade)" : "enviados"}.`
+      `${step.ok} SMS ${simulated ? "simulados (modo de teste, nada foi enviado de verdade)" : "enviados"}.`
     );
-    if (failed > 0) parts.push(`${failed} SMS falharam — veja o Histórico de envios, em Campanhas.`);
+    if (step.failed > 0) parts.push(`${step.failed} SMS falharam — veja o Histórico de envios, em Campanhas.`);
+    if (step.skipped > 0) parts.push(`${step.skipped} ignorados (número inválido).`);
+    if (step.left > 0) parts.push(`Os outros ${step.left} SMS estão a ser enviados automaticamente — pode fechar esta página.`);
+  } else if (step) {
+    parts.push("Os SMS estão a ser enviados automaticamente — pode fechar esta página.");
+  }
+  if (withSms) {
     if (noConsent > 0) {
       parts.push(
         `${noConsent} ${noConsent === 1 ? "cliente não recebe" : "clientes não recebem"} mensagens, por isso não ${noConsent === 1 ? "recebeu" : "receberam"} SMS (o vale fica na ficha do cliente).`

@@ -346,7 +346,7 @@ export default function CampaignEditor({
             id="live-until"
             name="live_until"
             defaultValue={liveUntilText}
-            hint="Último dia da campanha. Se o envio parar a meio, os clientes que faltam recebem-na às 10h até este dia."
+            hint="Último dia da campanha. Depois deste dia já não é enviada a ninguém."
             error={liveError ?? (state.field === "live_until" ? state.error : undefined)}
             onChange={(text) => {
               if (!liveTyped) {
@@ -461,7 +461,7 @@ export default function CampaignEditor({
         </div>
         {busy("send") && !later ? (
           <p className="meta" role="status" style={{ marginTop: "var(--sp-16)" }}>
-            A enviar em grupos de 10. Não feche esta página.
+            A enviar… Só demora alguns segundos; o resto continua sozinho.
           </p>
         ) : null}
       </div>
