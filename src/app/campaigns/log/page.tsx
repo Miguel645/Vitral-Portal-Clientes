@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/date";
 import { formatPhone } from "@/lib/phone";
+import { sourceLabel, STATUS_LABEL, statusTagClass } from "./labels";
 
 type LogRow = {
   id: string;
@@ -18,21 +19,12 @@ type LogRow = {
   campaigns: { name: string } | null;
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  simulated: "Simulado",
-  sent: "Enviado",
-  failed: "Falhou",
-  skipped: "Ignorado",
-  // The page stopped while the SMS was being sent (see INTERRUPTED_STATUS in messaging).
-  sending: "Interrompido",
-};
-
 const LIMIT = 100;
 
 export default async function SendHistoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ campaign?: string; status?: string }>;
+  searchParams: Promise<{ campaign?: string; status?: string; client?: string }>;
 }) {
   const params = await searchParams;
   // "" = all, "test" = only test SMS, "welcome" = welcome SMS, "other" = vale and birthday SMS, or a campaign id.
@@ -41,6 +33,8 @@ export default async function SendHistoryPage({
       ? params.campaign!
       : "";
   const status = params.status && STATUS_LABEL[params.status] ? params.status : "";
+  // One client's messages ("Ver todas as mensagens" on their page).
+  const clientId = /^[0-9a-f-]{36}$/i.test(params.client ?? "") ? params.client! : "";
 
   const supabase = await createClient();
   let query = supabase
@@ -53,24 +47,35 @@ export default async function SendHistoryPage({
   else if (campaign === "other") query = query.is("campaign_id", null).eq("is_test", false).is("kind", null);
   else if (campaign) query = query.eq("campaign_id", campaign).eq("is_test", false);
   if (status) query = query.eq("status", status);
+  if (clientId) query = query.eq("client_id", clientId);
 
-  const [{ data }, { data: campaigns }] = await Promise.all([
+  const [{ data }, { data: campaigns }, { data: client }] = await Promise.all([
     query,
     supabase.from("campaigns").select("id, name").eq("status", "sent").order("sent_at", { ascending: false }),
+    clientId
+      ? supabase.from("clients").select("id, name").eq("id", clientId).maybeSingle<{ id: string; name: string }>()
+      : Promise.resolve({ data: null }),
   ]);
   const rows = (data ?? []) as unknown as LogRow[];
-  const filtered = campaign !== "" || status !== "";
+  const filtered = campaign !== "" || status !== "" || clientId !== "";
 
   return (
     <main className="page-wide">
       <header className="top">
         <div>
-          <Link className="navlink" href="/campaigns">Voltar às campanhas</Link>
+          {client ? (
+            <Link className="navlink" href={`/clients/${client.id}`}>Voltar a {client.name}</Link>
+          ) : (
+            <Link className="navlink" href="/campaigns">Voltar às campanhas</Link>
+          )}
           <h1>Histórico de envios</h1>
+          {client ? <span className="count">Só as mensagens de {client.name}</span> : null}
         </div>
       </header>
 
       <form method="get" className="card filters">
+        {/* Filtering by campaign or status keeps the client filter. */}
+        {clientId ? <input type="hidden" name="client" value={clientId} /> : null}
         <label htmlFor="filter-campaign">
           Campanha
           <select id="filter-campaign" name="campaign" defaultValue={campaign} aria-describedby="filter-campaign-hint">
@@ -112,12 +117,12 @@ export default async function SendHistoryPage({
                     {r.clients?.name ? `${r.clients.name} · ${formatPhone(r.to_phone)}` : formatPhone(r.to_phone)}
                   </div>
                   <div className="meta">
-                    {formatDateTime(r.created_at)} · {r.is_test ? "Teste" : r.campaigns?.name ?? (r.kind === "welcome" ? "Boas-vindas" : "Vale")}
+                    {formatDateTime(r.created_at)} · {sourceLabel(r)}
                   </div>
                   <div className="meta">{r.body}</div>
                   {r.error ? <div className="meta err-text">Motivo: {r.error}</div> : null}
                 </div>
-                <span className={`tag${r.status === "sent" ? " on" : r.status === "failed" || r.status === "skipped" || r.status === "sending" ? " warn" : ""}`}>
+                <span className={statusTagClass(r.status)}>
                   {STATUS_LABEL[r.status] ?? r.status}
                 </span>
               </li>
