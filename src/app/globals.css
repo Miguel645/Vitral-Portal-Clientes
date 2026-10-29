@@ -101,6 +101,17 @@ textarea { resize: vertical; min-height: 110px; }
 .bar form input, .inline-form input { min-width: 0; }
 .inline-form { display: flex; gap: var(--sp-8); }
 .bar > .btn.primary { flex: 0 0 auto; }
+/* Filter tabs over a list (e.g. Todos / Ativos / Expirados on Vales): the active one is
+   bold and underlined, never colour alone, and announced with aria-current. */
+.tabs { display: flex; gap: var(--sp-8); flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.tab {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 48px;
+  padding: var(--sp-8) var(--sp-16); margin-bottom: -1px;
+  color: var(--ink); text-decoration: none; font-weight: 500; border-bottom: 3px solid transparent;
+}
+.tab:hover { color: var(--accent); }
+.tab[aria-current="page"] { font-weight: 700; color: var(--accent); border-bottom-color: var(--accent); }
+main > .tabs + * { margin-top: var(--sp-16) !important; }
 .pager { display: flex; gap: var(--sp-16); align-items: center; justify-content: center; flex-wrap: wrap; }
 
 /* Responsive grid */
@@ -331,7 +342,7 @@ label .err, .combo .err { display: block; margin: var(--sp-8) 0 0; font-size: 0.
 
 /* Printing a vale list: keep only the list, drop nav/buttons/forms */
 @media print {
-  .topbar, .bar, form, .actions, .more { display: none; }
+  .topbar, .bar, .tabs, form, .actions, .more { display: none; }
 }
 
 /* Phones */
@@ -343,8 +354,7 @@ label .err, .combo .err { display: block; margin: var(--sp-8) 0 0; font-size: 0.
   .card { padding: var(--sp-16); }
   .btn { white-space: normal; text-align: center; }
   .bar > .btn.primary { width: 100%; }
-  .bar.filters { gap: var(--sp-8); }
-  .bar.filters .btn { flex: 1 1 0; padding: var(--sp-8) var(--sp-4); font-size: 0.95rem; }
+  .tabs .tab { flex: 1 1 0; padding: var(--sp-8) var(--sp-4); }
   .list-row.stack { flex-direction: column; align-items: stretch; gap: var(--sp-8); }
   .list-row.stack .row-end { justify-content: space-between; padding: 0; }
   .actions .btn { flex: 1 1 auto; }
