@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateUniqueCodes } from "@/lib/codes";
 import { fetchAll } from "@/lib/fetchAll";
 import { clientSearchFilter } from "@/lib/clientSearch";
-import { INVALID_DATE, parseDisplayDate } from "@/lib/date";
+import { INVALID_DATE, lisbonToday, parseDisplayDate } from "@/lib/date";
 import { isSimulation } from "@/lib/messaging";
 import { appUrlError } from "@/lib/optOut";
 import { safeBack } from "./status";
@@ -230,4 +230,23 @@ export async function deleteCode(formData: FormData) {
     redirect(`/codes?error=${encodeURIComponent(`O vale ${code} já não existe: pode ter sido usado ou eliminado.`)}`);
   }
   redirect(`/codes?message=${encodeURIComponent(`Vale ${code} eliminado.`)}`);
+}
+
+// "Eliminar vales expirados" in the "…" menu of the Expirados tab: deletes every vale
+// whose last day has passed (same rule as the tab). Birthday vales stay counted in
+// birthday_vales_given, so nobody gets a second one that year.
+export async function deleteExpiredCodes() {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("discount_codes")
+    .delete({ count: "exact" })
+    .is("used_at", null)
+    .lt("valid_to", lisbonToday());
+  if (error) {
+    redirect(`/codes?filter=expired&error=${encodeURIComponent("Não foi possível eliminar os vales expirados. Atualize a página e tente novamente.")}`);
+  }
+  const n = count ?? 0;
+  const message =
+    n === 0 ? "Não havia vales expirados." : n === 1 ? "1 vale expirado eliminado." : `${n} vales expirados eliminados.`;
+  redirect(`/codes?filter=expired&message=${encodeURIComponent(message)}`);
 }
