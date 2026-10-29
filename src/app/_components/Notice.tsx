@@ -12,11 +12,14 @@ export default function Notice({
   param = "message",
   clear = [],
   autoHide = false,
+  error = false,
 }: {
   message?: string;
   param?: string;
   clear?: string[];
   autoHide?: boolean;
+  // Something didn't work: shown in the error colour, read out at once, never hidden by itself.
+  error?: boolean;
 }) {
   const clearKey = clear.join(",");
   const [hidden, setHidden] = useState(false);
@@ -32,14 +35,14 @@ export default function Notice({
 
   useEffect(() => {
     setHidden(false);
-    if (!message || !autoHide) return;
+    if (!message || !autoHide || error) return;
     const timer = setTimeout(() => setHidden(true), JUST_SAVED_MS);
     return () => clearTimeout(timer);
-  }, [message, autoHide]);
+  }, [message, autoHide, error]);
 
   if (!message || hidden) return null;
   return (
-    <p className="notice" role="status">
+    <p className={error ? "notice error" : "notice"} role={error ? "alert" : "status"}>
       {message}
     </p>
   );

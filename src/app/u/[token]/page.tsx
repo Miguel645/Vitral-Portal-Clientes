@@ -5,10 +5,13 @@ import { tokenColumn } from "./tokenColumn";
 
 export default async function UnsubscribePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ erro?: string }>;
 }) {
   const { token } = await params;
+  const { erro } = await searchParams;
   const column = tokenColumn(token);
   const supabase = createAdminClient();
 
@@ -33,6 +36,9 @@ export default async function UnsubscribePage({
         <form action={unsubscribe} className="card">
           <h2>Deixar de receber mensagens</h2>
           <p className="meta">Quer deixar de receber mensagens da Vitral (promoções, saldos e novidades)?</p>
+          {erro ? (
+            <p className="err" role="alert">Não foi possível cancelar. Tente novamente daqui a pouco.</p>
+          ) : null}
           <input type="hidden" name="token" value={token} />
           <div className="actions">
             <SubmitButton pendingText="A cancelar…">Confirmar cancelamento</SubmitButton>

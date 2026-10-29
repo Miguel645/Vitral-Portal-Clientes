@@ -272,9 +272,13 @@ export async function stopCampaign(formData: FormData) {
 export async function deleteCampaign(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const name = String(formData.get("name") ?? "");
-  if (/^[0-9a-f-]{36}$/i.test(id)) {
-    const supabase = await createClient();
-    await supabase.from("campaigns").delete().eq("id", id);
+  if (!/^[0-9a-f-]{36}$/i.test(id)) redirect("/campaigns");
+  const supabase = await createClient();
+  // Only says "eliminada" when the database really deleted it.
+  const { data, error } = await supabase.from("campaigns").delete().eq("id", id).select("id");
+  if (error) {
+    redirect(`/campaigns/${id}?error=${encodeURIComponent("Não foi possível eliminar a campanha. Atualize a página e tente novamente.")}`);
   }
+  if (!data?.length) redirect(`/campaigns?error=${encodeURIComponent("Esta campanha já não existe: pode já ter sido eliminada.")}`);
   redirect(`/campaigns?message=${encodeURIComponent(name ? `Campanha ${name} eliminada.` : "Campanha eliminada.")}`);
 }

@@ -11,7 +11,9 @@ export async function unsubscribe(formData: FormData) {
   const column = tokenColumn(token);
   if (column) {
     const supabase = createAdminClient();
-    await supabase.from("clients").update({ consent: false }).eq(column, token);
+    const { error } = await supabase.from("clients").update({ consent: false }).eq(column, token);
+    // The page shows the button again with a message, instead of pretending it worked.
+    if (error) redirect(`/u/${encodeURIComponent(token)}?erro=1`);
   }
   redirect(`/u/${encodeURIComponent(token)}`);
 }

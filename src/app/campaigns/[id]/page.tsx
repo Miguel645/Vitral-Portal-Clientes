@@ -24,10 +24,10 @@ export default async function CampaignPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ message?: string }>;
+  searchParams: Promise<{ message?: string; error?: string }>;
 }) {
   const { id } = await params;
-  const { message } = await searchParams;
+  const { message, error: errorMessage } = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
   const supabase = await createClient();
@@ -65,6 +65,7 @@ export default async function CampaignPage({
       <main className="page-medium">
         {header}
         <Notice message={message} />
+        <Notice message={errorMessage} param="error" error />
         {campaign.status === "scheduled" && campaign.live_until && campaign.live_until < lisbonToday() ? (
           <p className="err" role="alert">
             Esta campanha não foi enviada: o envio das 10h não aconteceu entre o início e o fim. Escolha novas datas e
@@ -118,6 +119,7 @@ export default async function CampaignPage({
     <main className="page-medium">
       {header}
       <Notice message={message} />
+      <Notice message={errorMessage} param="error" error />
 
       <div className="card">
         <h2>Resumo</h2>

@@ -19,9 +19,9 @@ type Client = {
 export default async function ClientsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string; message?: string; saved?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; message?: string; saved?: string; error?: string }>;
 }) {
-  const { q = "", page: pageParam, message, saved } = await searchParams;
+  const { q = "", page: pageParam, message, saved, error: errorMessage } = await searchParams;
   const page = pageFromParam(pageParam);
   const supabase = await createClient();
 
@@ -73,6 +73,8 @@ export default async function ClientsPage({
       </header>
 
       <Notice message={message} clear={["saved"]} autoHide />
+
+      <Notice message={errorMessage} param="error" error />
 
       <div className="bar">
         <ClientSearch q={q} />

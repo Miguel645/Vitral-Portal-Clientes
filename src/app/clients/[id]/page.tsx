@@ -27,10 +27,10 @@ export default async function EditClientPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ message?: string }>;
+  searchParams: Promise<{ message?: string; error?: string }>;
 }) {
   const { id } = await params;
-  const { message } = await searchParams;
+  const { message, error: errorMessage } = await searchParams;
   const supabase = await createClient();
 
   const [{ data: client }, { data: codes }, { data: welcomeLog }] = await Promise.all([
@@ -72,6 +72,8 @@ export default async function EditClientPage({
       </header>
 
       <Notice message={message} />
+
+      <Notice message={errorMessage} param="error" error />
 
       <div className="client-layout">
         <ClientForm client={{ ...client, welcome_at: welcomeLog?.[0]?.created_at ?? null }} />

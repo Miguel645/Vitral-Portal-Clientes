@@ -1,3 +1,4 @@
+import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 // Server-only. Uses the service role key, which bypasses row level security.

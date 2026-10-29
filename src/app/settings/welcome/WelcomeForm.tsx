@@ -150,6 +150,7 @@ export default function WelcomeForm({
               <input
                 id="welcome-type-percent"
                 type="radio"
+                name="welcome_discount_type"
                 checked={discountType === "percent"}
                 onChange={() => setDiscountType("percent")}
               />
@@ -159,6 +160,7 @@ export default function WelcomeForm({
               <input
                 id="welcome-type-amount"
                 type="radio"
+                name="welcome_discount_type"
                 checked={discountType === "amount"}
                 onChange={() => setDiscountType("amount")}
               />

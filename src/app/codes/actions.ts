@@ -218,9 +218,16 @@ export async function markCodeUsed(formData: FormData) {
 export async function deleteCode(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const code = String(formData.get("code") ?? "");
-  if (id) {
-    const supabase = await createClient();
-    await supabase.from("discount_codes").delete().eq("id", id);
+  const supabase = await createClient();
+  // Only says "eliminado" when the database really deleted it.
+  const { data, error } = id
+    ? await supabase.from("discount_codes").delete().eq("id", id).select("id")
+    : { data: [], error: null };
+  if (error) {
+    redirect(`/codes?error=${encodeURIComponent(`Não foi possível eliminar o vale ${code}. Atualize a página e tente novamente.`)}`);
+  }
+  if (!data?.length) {
+    redirect(`/codes?error=${encodeURIComponent(`O vale ${code} já não existe: pode ter sido usado ou eliminado.`)}`);
   }
   redirect(`/codes?message=${encodeURIComponent(`Vale ${code} eliminado.`)}`);
 }
