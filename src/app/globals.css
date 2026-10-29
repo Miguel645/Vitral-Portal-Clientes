@@ -112,6 +112,9 @@ textarea { resize: vertical; min-height: 110px; }
 .tab:hover { color: var(--accent); }
 .tab[aria-current="page"] { font-weight: 700; color: var(--accent); border-bottom-color: var(--accent); }
 main > .tabs + * { margin-top: var(--sp-16) !important; }
+/* A line between the tabs and the list: a count on the left, a "…" menu on the right. */
+.list-tools { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-16); }
+main > .list-tools + * { margin-top: var(--sp-16) !important; }
 .pager { display: flex; gap: var(--sp-16); align-items: center; justify-content: center; flex-wrap: wrap; }
 
 /* Responsive grid */

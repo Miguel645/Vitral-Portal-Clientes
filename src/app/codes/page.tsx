@@ -7,7 +7,7 @@ import Notice from "@/app/_components/Notice";
 import JustSavedLabel from "@/app/_components/JustSaved";
 import Pager, { PAGE_SIZE, pageFromParam } from "@/app/_components/Pager";
 import DeleteMenu from "@/app/_components/DeleteMenu";
-import { deleteCode } from "./actions";
+import { deleteCode, deleteExpiredCodes } from "./actions";
 import { formatDate, lisbonToday } from "@/lib/date";
 import { formatDiscount, KIND_LABEL } from "@/lib/discount";
 import { isSending, startJob } from "@/lib/jobs";
@@ -117,6 +117,23 @@ export default async function CodesPage({
           </Link>
         ))}
       </nav>
+
+      {/* All expired vales can go at once (asks first, like every "Eliminar"). */}
+      {activeFilter === "expired" && (count ?? 0) > 0 ? (
+        <div className="list-tools">
+          <span className="count">
+            {count} {count === 1 ? "vale expirado" : "vales expirados"}
+          </span>
+          <DeleteMenu
+            menuLabel="Mais ações para os vales expirados"
+            itemLabel="Eliminar vales expirados"
+            title={count === 1 ? "Eliminar o vale expirado?" : `Eliminar os ${count} vales expirados?`}
+            description="Não é possível desfazer. Já não podiam ser usados; deixam de aparecer na lista e na ficha de cada cliente."
+            action={deleteExpiredCodes}
+            fields={{}}
+          />
+        </div>
+      ) : null}
 
       {filtered.length === 0 ? (
         <div className="empty">
