@@ -250,6 +250,7 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
   font-size: 1rem;
   font-weight: 500;
 }
+.notice.error { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--surface)); }
 .empty { padding: var(--sp-32) var(--sp-16); text-align: center; color: var(--muted); font-size: 1rem; }
 .form-stack { display: grid; gap: var(--sp-32); }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: var(--sp-24); }

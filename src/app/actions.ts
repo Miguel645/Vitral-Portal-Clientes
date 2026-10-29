@@ -107,9 +107,14 @@ export async function saveClient(_prev: ClientFormState, formData: FormData): Pr
 export async function deleteClient(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const name = String(formData.get("name") ?? "");
-  if (id) {
-    const supabase = await createClient();
-    await supabase.from("clients").delete().eq("id", id);
+  const supabase = await createClient();
+  // Only says "eliminado" when the database really deleted them.
+  const { data, error } = id
+    ? await supabase.from("clients").delete().eq("id", id).select("id")
+    : { data: [], error: null };
+  if (error) {
+    redirect(`/clients/${id}?error=${encodeURIComponent("Não foi possível eliminar o cliente. Atualize a página e tente novamente.")}`);
   }
+  if (!data?.length) redirect(`/?error=${encodeURIComponent("Este cliente já não existe: pode já ter sido eliminado.")}`);
   redirect(`/?message=${encodeURIComponent(name ? `Cliente ${name} eliminado.` : "Cliente eliminado.")}`);
 }

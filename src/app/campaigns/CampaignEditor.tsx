@@ -272,11 +272,11 @@ export default function CampaignEditor({
           <>
             <div role="radiogroup" aria-label="Tipo de desconto">
               <label className="check" htmlFor="type-percent">
-                <input id="type-percent" type="radio" checked={discountType === "percent"} onChange={() => setDiscountType("percent")} />
+                <input id="type-percent" type="radio" name="discount_type" checked={discountType === "percent"} onChange={() => setDiscountType("percent")} />
                 <span>Percentagem (%)</span>
               </label>
               <label className="check" htmlFor="type-amount">
-                <input id="type-amount" type="radio" checked={discountType === "amount"} onChange={() => setDiscountType("amount")} />
+                <input id="type-amount" type="radio" name="discount_type" checked={discountType === "amount"} onChange={() => setDiscountType("amount")} />
                 <span>Valor em euros (€)</span>
               </label>
             </div>

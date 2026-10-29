@@ -37,9 +37,9 @@ const FILTERS: { key: string; label: string; empty: string }[] = [
 export default async function CodesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; page?: string; message?: string; saved?: string }>;
+  searchParams: Promise<{ filter?: string; page?: string; message?: string; saved?: string; error?: string }>;
 }) {
-  const { filter = "all", page: pageParam, message, saved } = await searchParams;
+  const { filter = "all", page: pageParam, message, saved, error: errorMessage } = await searchParams;
   // The codes of the vales just created, highlighted in the list.
   const justSaved = new Set((saved ?? "").split(","));
   const page = pageFromParam(pageParam);
@@ -88,6 +88,8 @@ export default async function CodesPage({
       </header>
 
       <Notice message={message} clear={["saved"]} autoHide />
+
+      <Notice message={errorMessage} param="error" error />
 
       {batches.length > 0 ? (
         <div className="notice" role="status">

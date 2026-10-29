@@ -22,10 +22,10 @@ type Row = {
 export default async function CampaignsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ message?: string; saved?: string }>;
+  searchParams: Promise<{ message?: string; saved?: string; error?: string }>;
 }) {
   // `saved`: the campaign just saved, shown first and highlighted.
-  const { message, saved } = await searchParams;
+  const { message, saved, error: errorMessage } = await searchParams;
   const supabase = await createClient();
   const { data } = await supabase
     .from("campaigns")
@@ -45,6 +45,8 @@ export default async function CampaignsPage({
       </header>
 
       <Notice message={message} clear={["saved"]} autoHide />
+
+      <Notice message={errorMessage} param="error" error />
 
       {rows.length === 0 ? (
         <div className="empty">Ainda não há campanhas. Carregue em “Nova campanha” para começar.</div>
