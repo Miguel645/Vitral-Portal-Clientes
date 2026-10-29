@@ -70,7 +70,16 @@ export default async function CampaignsPage({
                       {hasVale ? ` · Com vale de ${formatDiscount({ percent: c.vale_percent, amount_eur: c.vale_amount_eur })}` : ""}
                     </div>
                   </div>
-                  <span className={c.status === "sent" ? "tag on" : "tag"}>
+                  {/* "Não enviada" needs the owner to pick new dates, so it's red. */}
+                  <span
+                    className={
+                      c.status === "sent"
+                        ? "tag on"
+                        : c.status === "scheduled" && c.live_until && c.live_until < today
+                          ? "tag warn"
+                          : "tag"
+                    }
+                  >
                     {isLive(c)
                       ? "Ativa"
                       : c.status === "sent"

@@ -97,7 +97,7 @@ export default async function EditClientPage({
                     <div className="row-end">
                       <span className={tagClass(status.key)}>{status.label}</span>
                       {status.key === "active" ? <CopyButton text={v.code} /> : null}
-                      {!v.used_at ? (
+                      {status.key === "active" ? (
                         <Link href={`/codes/${v.id}/use?back=${encodeURIComponent(`/clients/${client.id}`)}`} className="btn">
                           Marcar como usado
                         </Link>

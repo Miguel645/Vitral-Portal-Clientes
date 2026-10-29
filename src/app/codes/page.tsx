@@ -104,13 +104,19 @@ export default async function CodesPage({
         </div>
       ) : null}
 
-      <div className="bar filters">
+      {/* Tabs, not buttons: the page's one primary button is "Criar vales". */}
+      <nav className="tabs" aria-label="Mostrar vales">
         {FILTERS.map((f) => (
-          <Link key={f.key} href={`/codes?filter=${f.key}`} className={`btn${activeFilter === f.key ? " primary" : ""}`}>
+          <Link
+            key={f.key}
+            href={`/codes?filter=${f.key}`}
+            className="tab"
+            aria-current={activeFilter === f.key ? "page" : undefined}
+          >
             {f.label}
           </Link>
         ))}
-      </div>
+      </nav>
 
       {filtered.length === 0 ? (
         <div className="empty">
@@ -131,7 +137,7 @@ export default async function CodesPage({
               </div>
               <div className="row-end">
                 <span className={tagClass(c.status.key)}>{c.status.label}</span>
-                {!c.used_at ? (
+                {c.status.key === "active" ? (
                   <Link href={`/codes/${c.id}/use`} className="btn">Marcar como usado</Link>
                 ) : null}
                 <DeleteMenu

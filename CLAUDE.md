@@ -52,6 +52,8 @@ Miguel is the only user for now. He works as a systems/support engineer and is b
 - Base text size is 19-20px, set via `:root { font-size: 20px }` (19px on phones) so every other size — defined in `rem` in `globals.css` — scales with it and still respects browser zoom. Form labels are at least 1rem and use `var(--ink)` (dark, not `var(--muted)`) for contrast; hints under fields are at least 0.95rem.
 - Every button and form control has `min-height: 48px` and generous spacing — easy to tap on a phone, not just a mouse.
 - One clear primary button per screen (`.btn.primary`); everything else is a quieter plain `.btn`. A destructive "Eliminar" never sits in a main button row — it lives in the "…" menu (`DeleteMenu`) and always asks for confirmation in-page.
+- Filters over a list are tabs (`nav.tabs` with `a.tab`, the active one bold + underlined with `aria-current="page"`), never `.btn.primary` buttons, so the header button stays the screen's only primary one (Vales page, 2026-10-29).
+- "Marcar como usado" only appears on vales that are "Ativo" (Vales list and the client page); expired or not-started ones only show their tag.
 - Status is never colour-only: every `.tag` always contains a word ("Ativo", "Expirado", "Já usado", etc.), colour is just reinforcement.
 - Spacing scale: `--sp-4/8/12/16/24/32/48/64` in `globals.css`. All margin/padding/gap values use one of these — never an arbitrary px number. Cards use `--sp-24` padding, form fields (`label`) have `--sp-24` margin-bottom, buttons in an `.actions` row have `--sp-16` gap, list rows are at least 64px tall. `main > * + *` automatically adds `--sp-32` between top-level sections of a page, so pages don't need manual spacing between stacked cards.
 - Three page-width containers, applied to `<main>` — pick exactly one per page: `.page-wide` (1100px: lists/dashboards — clients, vales, campaigns log), `.page-medium` (680px: forms — client form, campaigns composer, settings, vale check, vale creation), `.page-narrow` (460px: login, the unsubscribe page, and the mark-used confirmation page). All three use `--sp-24` side padding on desktop, `--sp-16` on phones.
@@ -69,7 +71,7 @@ Miguel is the only user for now. He works as a systems/support engineer and is b
 
 1. Client records (done: login, list, search, add, edit, delete)
 2. Vales (done): birthday vales, independent vale creation (percentage or euro amount, for one/several/all clients, optional SMS), vale list/check/mark-used, a dedicated check page (`/verificar`). No purchase tracking — staff decide eligibility themselves.
-3. Campaigns (in progress): SMS done — saved campaigns with an optional vale per client, test send, send to all consenting clients, welcome SMS for new clients, simulation/Twilio sending with Portuguese error messages, opt-out link, filterable send history. Still to do: email sending (plug a provider into `sendEmail` in `src/lib/messaging/`, add an `email_consent` tick box).
+3. Campaigns (in progress): SMS done — saved campaigns with an optional vale per client, test send, send to all consenting clients, welcome SMS for new clients, scheduled and background sending, simulation/Brevo sending (Twilio as an alternative) with Portuguese error messages, opt-out link, filterable send history. Still to do: email sending (plug a provider into `sendEmail` in `src/lib/messaging/`, add an `email_consent` tick box).
 
 ## Where things are
 
