@@ -46,7 +46,10 @@ export default function TopBar({ simulation }: { simulation: boolean }) {
   return (
     <header className="topbar">
       <div className="topbar-inner">
-        <Link href="/" className="topbar-brand">Vitral</Link>
+        <Link href="/" className="topbar-brand">
+          <span className="topbar-brand-name">Vitral</span>
+          <span className="topbar-brand-sub">Portal de Clientes</span>
+        </Link>
 
         <nav className="topbar-nav" aria-label="Navegação principal">
           {LINKS.map((l) => (
