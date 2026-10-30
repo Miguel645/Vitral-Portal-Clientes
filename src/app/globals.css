@@ -193,7 +193,7 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
   text-align: center;
 }
 /* Logo: "Vitral" big, bold and green, "Portal de Clientes" small underneath. */
-.topbar-brand { display: flex; flex-direction: column; gap: var(--sp-4); text-decoration: none; flex: 0 0 auto; }
+.topbar-brand { display: flex; flex-direction: column; align-items: center; gap: var(--sp-4); text-decoration: none; flex: 0 0 auto; }
 .topbar-brand-name { font: 700 1.75rem/1 var(--font-heading), Georgia, serif; color: var(--accent); letter-spacing: 0.01em; }
 .topbar-brand-sub { font-size: 0.75rem; line-height: 1; font-weight: 500; color: var(--muted); letter-spacing: 0.02em; }
 .topbar-nav { display: flex; align-items: center; gap: var(--sp-16); flex: 1; }
