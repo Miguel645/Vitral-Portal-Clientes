@@ -12,6 +12,9 @@ const cormorant = Cormorant_Garamond({ subsets: ["latin"], weight: ["500", "600"
 export const metadata: Metadata = {
   title: "Clientes Vitral",
   description: "Registo de clientes da Vitral",
+  // The owner's icon set (public/site.webmanifest and its android-chrome PNGs). The tab
+  // icons are app/favicon.ico, app/icon.svg and app/apple-icon.png, linked by Next.js.
+  manifest: "/site.webmanifest",
 };
 
 export const viewport: Viewport = {
