@@ -7,7 +7,7 @@ import { isSimulation } from "@/lib/messaging/mode";
 // Served by Next.js with the site (no request to Google from the browser).
 // globals.css uses them through --font-body and --font-heading.
 const figtree = Figtree({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body", display: "swap" });
-const cormorant = Cormorant_Garamond({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-heading", display: "swap" });
+const cormorant = Cormorant_Garamond({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-heading", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Clientes Vitral",

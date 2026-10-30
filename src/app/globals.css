@@ -170,15 +170,16 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
 .result-box.bad { background: color-mix(in srgb, var(--warn) 16%, var(--surface)); color: var(--warn); border-color: var(--warn); }
 
 /* Top bar: sticky, full width, aligned with the page containers */
+/* The bar's height, shared with the phone menu panel that opens right under it. */
+:root { --topbar-h: 72px; }
 .topbar { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); width: 100%; }
+/* Full width: the logo sits at the left edge of the window, "Sair" at the right. */
 .topbar-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: var(--sp-12) var(--sp-24);
+  padding: 0 var(--sp-16);
   display: flex;
   align-items: center;
-  gap: var(--sp-24);
-  min-height: 64px;
+  gap: var(--sp-32);
+  height: var(--topbar-h);
 }
 /* Shown under the top bar while MESSAGING_MODE is "simulation". */
 .sim-banner {
@@ -191,7 +192,10 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
   font-weight: 600;
   text-align: center;
 }
-.topbar-brand { font: 600 1.3rem/1 var(--font-heading), Georgia, serif; color: var(--ink); text-decoration: none; flex: 0 0 auto; }
+/* Logo: "Vitral" big, bold and green, "Portal de Clientes" small underneath. */
+.topbar-brand { display: flex; flex-direction: column; gap: var(--sp-4); text-decoration: none; flex: 0 0 auto; }
+.topbar-brand-name { font: 700 1.75rem/1 var(--font-heading), Georgia, serif; color: var(--accent); letter-spacing: 0.01em; }
+.topbar-brand-sub { font-size: 0.75rem; line-height: 1; font-weight: 500; color: var(--muted); letter-spacing: 0.02em; }
 .topbar-nav { display: flex; align-items: center; gap: var(--sp-16); flex: 1; }
 .topbar-link { color: var(--ink); text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: var(--sp-8) 0; border-bottom: 2px solid transparent; }
 .topbar-link.active { font-weight: 700; border-bottom-color: var(--accent); color: var(--accent); }
@@ -224,7 +228,7 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
   position: fixed;
   left: 0;
   right: 0;
-  top: 64px;
+  top: var(--topbar-h);
   background: var(--surface);
   border-bottom: 1px solid var(--line);
   padding: var(--sp-16) var(--sp-24);
@@ -247,8 +251,7 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
 @media (max-width: 900px) {
   .topbar-nav { display: none; }
   .topbar-menu { display: block; }
-  .topbar-inner { padding: var(--sp-12) var(--sp-16); gap: var(--sp-12); }
-  .topbar-menu-panel { top: 64px; }
+  .topbar-inner { gap: var(--sp-12); }
 }
 
 /* Secondary text links (not main navigation) */
