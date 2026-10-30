@@ -10,7 +10,7 @@ Miguel is the only user for now. He works as a systems/support engineer and is b
 
 - Next.js 15 (App Router, TypeScript), server actions for data changes
 - Supabase: Postgres database and email/password login (row level security on)
-- Hosting: Vercel, code on GitHub (`Miguel645/Vitral-Portal-Clientes`)
+- Hosting: Vercel, code on GitHub (`Miguel645/Vitral-Portal-Clientes`). Functions run in Dublin (`"regions": ["dub1"]` in `vercel.json`), next to the Supabase database in Ireland (owner decision, 2026-10-30) — keep them together, every query crosses between them.
 - Secrets stay in `.env.local` (never commit it). Only the public URL and anon key are used in the app. Never use a service_role key in client-side code.
 
 ## Decisions made
