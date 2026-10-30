@@ -548,3 +548,6 @@ $$;
 -- can't call it to empty the history.
 revoke execute on function public.archive_old_sms_log() from public, anon, authenticated;
 grant execute on function public.archive_old_sms_log() to service_role;
+
+-- A client's latest SMS (migration 20261030_sms_log_client_index.sql).
+create index if not exists sms_log_client_id_created_at_idx on public.sms_log (client_id, created_at desc);
