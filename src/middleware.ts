@@ -34,9 +34,12 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims checks the login token's signature right here, without asking Supabase on
+  // every click (when the project uses the newer asymmetric "JWT signing keys"; with the
+  // older shared secret it asks Supabase, like getUser did). It also refreshes a token
+  // about to expire. The data itself stays protected by row level security either way.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ?? null;
 
   const isLogin = request.nextUrl.pathname.startsWith("/login");
   const isUnsubscribe = request.nextUrl.pathname.startsWith("/u/");

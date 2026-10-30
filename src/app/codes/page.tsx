@@ -55,22 +55,25 @@ export default async function CodesPage({
     });
   if (activeFilter === "active") query = query.is("used_at", null).lte("valid_from", today).gte("valid_to", today);
   if (activeFilter === "expired") query = query.is("used_at", null).lt("valid_to", today);
-  const { data, count, error } = await query
-    .order("created_at", { ascending: false })
-    .order("id")
-    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+  // The list and the "Criar vales" runs still sending are asked for at the same time.
+  type Batch = { id: string; recipients: number; sending_until: string | null; send_error: string | null };
+  const [{ data, count, error }, { data: batchRows }] = await Promise.all([
+    query
+      .order("created_at", { ascending: false })
+      .order("id")
+      .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
+    supabase
+      .from("vale_batches")
+      .select("id, recipients, sending_until, send_error")
+      .is("finished_at", null)
+      .order("created_at"),
+  ]);
   // A page number past the end (e.g. after deleting vales): back to the first page.
   if (error && page > 1) redirect(`/codes?filter=${activeFilter}`);
 
   const filtered = ((data ?? []) as unknown as Row[]).map((r) => ({ ...r, status: codeStatus(r, today) }));
 
   // "Criar vales" runs whose SMS are still going out in the background (src/lib/jobs).
-  type Batch = { id: string; recipients: number; sending_until: string | null; send_error: string | null };
-  const { data: batchRows } = await supabase
-    .from("vale_batches")
-    .select("id, recipients, sending_until, send_error")
-    .is("finished_at", null)
-    .order("created_at");
   const batches = await Promise.all(
     ((batchRows ?? []) as Batch[]).map(async (b) => {
       const { count } = await supabase.from("sms_log").select("id", { count: "exact", head: true }).eq("batch_id", b.id);
