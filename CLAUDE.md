@@ -76,6 +76,7 @@ Miguel is the only user for now. He works as a systems/support engineer and is b
 ## Where things are
 
 - `src/app/` pages and server actions
+- `src/app/favicon.ico` (16/32/48 px), `icon.png` (192 px, transparent rounded corners) and `apple-icon.png` (180 px, corners filled with the brand green `#295D68`, since iOS rounds them itself): the owner's white serif "V" on the brand green (2026-10-30). Next.js serves them by file name.
 - `src/app/_components/TopBar.tsx` shared sticky top bar, rendered once by `layout.tsx` (Clientes, Vales, Verificar vale, Campanhas, Definições, plus "Sair")
 - `src/app/_components/SubmitButton.tsx` submit button with pending text; `Notice.tsx` the success-message box
 - `src/app/_components/CopyButton.tsx` small client component, copies a vale code to the clipboard
