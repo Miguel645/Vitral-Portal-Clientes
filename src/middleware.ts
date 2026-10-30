@@ -59,6 +59,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // The app icons too, so they show on the login page (signed out).
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png).*)"],
+  // The app icons and the web manifest too, so they load on the login page (signed out).
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|site.webmanifest|android-chrome-192x192.png|android-chrome-512x512.png).*)",
+  ],
 };
