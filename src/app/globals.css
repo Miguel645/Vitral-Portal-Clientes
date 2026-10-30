@@ -109,7 +109,7 @@ textarea { resize: vertical; min-height: 110px; }
   padding: var(--sp-8) var(--sp-16); margin-bottom: -1px;
   color: var(--ink); text-decoration: none; font-weight: 500; border-bottom: 3px solid transparent;
 }
-.tab:hover { color: var(--accent); }
+@media (hover: hover) { .tab:hover { color: var(--accent); } }
 .tab[aria-current="page"] { font-weight: 700; color: var(--accent); border-bottom-color: var(--accent); }
 main > .tabs + * { margin-top: var(--sp-16) !important; }
 /* A line between the tabs and the list: a count on the left, a "…" menu on the right. */
@@ -131,7 +131,8 @@ ul.list li:last-child, ul.list li:last-child > a { border-bottom-left-radius: 9p
 ul.list li { border-top: 1px solid var(--line); min-height: 64px; }
 ul.list li:first-child { border-top: 0; }
 ul.list a.list-link { display: flex; justify-content: space-between; gap: var(--sp-16); align-items: center; padding: var(--sp-16); color: inherit; text-decoration: none; flex: 1; min-width: 0; }
-ul.list a.list-link:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+/* Hover only with a mouse: on a touchscreen a tapped row would stay highlighted. */
+@media (hover: hover) { ul.list a.list-link:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); } }
 /* The item just created/saved, shown first after the redirect ("Acabado de guardar"). */
 ul.list li.just-saved {
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
@@ -146,7 +147,14 @@ ul.list li.just-saved {
 .name { font-weight: 600; overflow-wrap: anywhere; }
 .meta { color: var(--muted); font-size: 0.95rem; overflow-wrap: anywhere; }
 ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 0; }
-.row-end { display: flex; gap: var(--sp-8); align-items: center; justify-content: flex-end; flex-wrap: wrap; padding: var(--sp-12) var(--sp-16); }
+.row-end { display: flex; gap: var(--sp-8); align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+/* A list row's buttons, when they wrap under the text, sit 16px under it (the row's own gap),
+   not 24px more from the separate .stack rule below. */
+.list-row.stack > * + * { margin-top: 0; }
+/* Inside a card (the client page's narrow columns) a row is always text, then its tag and
+   buttons underneath, on the left. */
+.card .list-row.stack { flex-direction: column; align-items: stretch; gap: var(--sp-12); }
+.card .list-row.stack .row-end { justify-content: flex-start; }
 .list-row.with-link .row-end { padding: var(--sp-12) var(--sp-16) var(--sp-12) 0; }
 
 /* Status tags: always show words, never colour alone */
@@ -191,9 +199,9 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
   font-weight: 600;
   text-align: center;
 }
-.topbar-brand { font: 600 1.3rem/1 var(--font-heading), Georgia, serif; color: var(--ink); text-decoration: none; flex: 0 0 auto; }
+.topbar-brand { font: 600 1.3rem/1 var(--font-heading), Georgia, serif; color: var(--ink); text-decoration: none; flex: 0 0 auto; display: inline-flex; align-items: center; min-height: 48px; }
 .topbar-nav { display: flex; align-items: center; gap: var(--sp-16); flex: 1; }
-.topbar-link { color: var(--ink); text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: var(--sp-8) 0; border-bottom: 2px solid transparent; }
+.topbar-link { color: var(--ink); text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: var(--sp-8) 0; border-bottom: 2px solid transparent; display: inline-flex; align-items: center; min-height: 48px; }
 .topbar-link.active { font-weight: 700; border-bottom-color: var(--accent); color: var(--accent); }
 .topbar-signout { margin-left: auto; flex: 0 0 auto; }
 .signout-btn {
@@ -204,7 +212,7 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
   font-weight: 600;
   cursor: pointer;
   padding: var(--sp-12) var(--sp-8);
-  min-height: 44px;
+  min-height: 48px;
   display: inline-flex;
   align-items: center;
 }
@@ -244,7 +252,7 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
 }
 .topbar-menu-link.active { font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 
-@media (max-width: 900px) {
+@media (max-width: 720px) {
   .topbar-nav { display: none; }
   .topbar-menu { display: block; }
   .topbar-inner { padding: var(--sp-12) var(--sp-16); gap: var(--sp-12); }
@@ -252,7 +260,7 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
 }
 
 /* Secondary text links (not main navigation) */
-.navlink { color: var(--muted); text-decoration: underline; font-size: 0.95rem; }
+.navlink { color: var(--muted); text-decoration: underline; font-size: 0.95rem; display: inline-flex; align-items: center; min-height: 48px; }
 
 .notice {
   margin: 0;
@@ -270,7 +278,7 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: var(--sp-24); }
 label { display: block; margin-bottom: var(--sp-24); font-size: 1rem; color: var(--ink); font-weight: 500; }
 label input, label select, label textarea { margin-top: var(--sp-8); color: var(--ink); font-weight: 400; }
-label.check { display: flex; gap: var(--sp-12); align-items: flex-start; color: var(--ink); }
+label.check { display: flex; gap: var(--sp-12); align-items: flex-start; color: var(--ink); min-height: 48px; padding: var(--sp-12) 0; margin-bottom: var(--sp-8); }
 label.check input { width: 24px; height: 24px; min-height: 0; flex: 0 0 auto; margin: 2px 0 0; accent-color: var(--accent); }
 .combo { margin-bottom: var(--sp-24); }
 .combo > label { margin-bottom: var(--sp-8); }
@@ -325,7 +333,8 @@ label .err, .combo .err { display: block; margin: var(--sp-8) 0 0; font-size: 0.
   display: flex; align-items: center; width: 100%; min-height: 48px; padding: var(--sp-12) var(--sp-16);
   border: 0; background: none; text-align: left; cursor: pointer; font-size: 1rem; white-space: nowrap;
 }
-.more-item:hover, .more-item:focus-visible { background: var(--bg); }
+.more-item:focus-visible { background: var(--bg); }
+@media (hover: hover) { .more-item:hover { background: var(--bg); } }
 .more-item:focus-visible { outline-offset: -3px; }
 .more-item.danger { color: var(--warn); font-weight: 600; }
 
