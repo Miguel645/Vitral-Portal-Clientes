@@ -132,15 +132,15 @@ ul.list li { border-top: 1px solid var(--line); min-height: 64px; }
 ul.list li:first-child { border-top: 0; }
 ul.list a.list-link { display: flex; justify-content: space-between; gap: var(--sp-16); align-items: center; padding: var(--sp-16); color: inherit; text-decoration: none; flex: 1; min-width: 0; }
 /* Hover only with a mouse: on a touchscreen a tapped row would stay highlighted. */
-@media (hover: hover) { ul.list a.list-link:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); } }
-/* The item just created/saved, shown first after the redirect ("Acabado de guardar"). */
-ul.list li.just-saved {
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+@media (hover: hover) { ul.list a.list-link:hover { background: rgba(14, 106, 106, 0.07); } }
+/* The item just created/saved, shown first after the redirect ("Acabado de guardar"),
+   only while its label is there: JustSavedLabel removes the label after 5 seconds and the
+   highlight goes with it. No CSS animation (some tablets switch those off, and the highlight
+   then never went away) and no color-mix() (one tablet showed it bright lime). */
+ul.list li.just-saved:has(.just-saved-label) {
+  background: #e2eded;
   box-shadow: inset var(--sp-4) 0 0 var(--accent);
-  /* Gone after 5 seconds, with its label (JustSavedLabel). */
-  animation: just-saved-out 0.4s ease 5s forwards;
 }
-@keyframes just-saved-out { to { background: var(--surface); box-shadow: none; } }
 .just-saved-label { font-weight: 700; color: var(--accent); }
 .list-row { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-16); padding: var(--sp-16); flex-wrap: wrap; min-height: 64px; }
 .list-row.with-link { padding: 0; }
@@ -174,8 +174,8 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
   font-weight: 700;
   border: 2px solid var(--line);
 }
-.result-box.ok { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--accent); border-color: var(--accent); }
-.result-box.bad { background: color-mix(in srgb, var(--warn) 16%, var(--surface)); color: var(--warn); border-color: var(--warn); }
+.result-box.ok { background: #d8e7e7; color: var(--accent); border-color: var(--accent); }
+.result-box.bad { background: #f3dedb; color: var(--warn); border-color: var(--warn); }
 
 /* Top bar: sticky, full width, aligned with the page containers */
 .topbar { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); width: 100%; }
@@ -193,7 +193,7 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
   margin: 0;
   padding: var(--sp-8) var(--sp-16);
   border-top: 1px solid var(--warn);
-  background: color-mix(in srgb, var(--warn) 12%, var(--surface));
+  background: #f6e6e4;
   color: var(--ink);
   font-size: 0.95rem;
   font-weight: 600;
@@ -250,7 +250,7 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
   font-weight: 500;
   min-height: 48px;
 }
-.topbar-menu-link.active { font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.topbar-menu-link.active { font-weight: 700; color: var(--accent); background: rgba(14, 106, 106, 0.1); }
 
 @media (max-width: 720px) {
   .topbar-nav { display: none; }
@@ -267,12 +267,12 @@ ul.list a.list-link > div:first-child, .list-row > div:first-child { min-width: 
   padding: var(--sp-12) var(--sp-16);
   border: 1px solid var(--accent);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  background: #e2eded;
   color: var(--ink);
   font-size: 1rem;
   font-weight: 500;
 }
-.notice.error { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--surface)); }
+.notice.error { border-color: var(--warn); background: #f7eae9; }
 .empty { padding: var(--sp-32) var(--sp-16); text-align: center; color: var(--muted); font-size: 1rem; }
 .form-stack { display: grid; gap: var(--sp-32); }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: var(--sp-24); }
