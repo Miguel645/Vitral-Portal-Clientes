@@ -87,7 +87,7 @@ export default async function EditClientPage({
           menuLabel={`Mais ações para o cliente ${client.name}`}
           itemLabel="Eliminar cliente"
           title={`Eliminar o cliente ${client.name}?`}
-          description="Não é possível desfazer. Os vales deste cliente continuam na lista de vales, mas sem cliente."
+          description="Não é possível desfazer. As mensagens enviadas a este cliente são apagadas do histórico. Os vales deste cliente continuam na lista de vales, mas sem cliente."
           action={deleteClient}
           fields={{ id: client.id, name: client.name }}
         />
